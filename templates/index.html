@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carta Digital - Nuestro Bar</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f8f9fa; color: #333; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        h1 { text-align: center; margin-bottom: 25px; color: #2c3e50; font-size: 24px; }
+        .categoria-seccion { margin-bottom: 25px; }
+        .categoria-titulo { font-size: 18px; color: #e67e22; border-bottom: 2px solid #f39c12; padding-bottom: 5px; margin-bottom: 15px; text-transform: uppercase; }
+        .producto-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px dashed #ddd; }
+        .producto-nombre { font-weight: 500; font-size: 16px; }
+        .producto-precio { font-weight: bold; color: #2c3e50; font-size: 16px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>☕ NUESTRA CARTA 🍺</h1>
+    <div id="carta-contenido">
+        </div>
+</div>
+
+<script>
+    // Consumir la API local que creamos en Flask
+    fetch('/api/carta')
+        .then(response => response.json())
+        .then(data => {
+            const contenedor = document.getElementById('carta-contenido');
+            
+            // Agrupar los productos por su categoría de forma dinámica
+            const categorias = {};
+            data.forEach(item => {
+                if (!categorias[item.categoria]) {
+                    categorias[item.categoria] = [];
+                }
+                categorias[item.categoria].push(item);
+            });
+
+            // Recorrer el objeto estructurado y pintar los elementos en el diseño
+            for (const cat in categorias) {
+                let seccionHTML = `<div class="categoria-seccion">
+                                    <h2 class="categoria-titulo">${cat}</h2>`;
+                
+                categorias[cat].forEach(prod => {
+                    seccionHTML += `<div class="producto-item">
+                                        <span class="producto-nombre">${prod.producto}</span>
+                                        <span class="producto-precio">${prod.precio.toFixed(2)}€</span>
+                                    </div>`;
+                });
+                
+                seccionHTML += `</div>`;
+                contenedor.innerHTML += seccionHTML;
+            }
+        })
+        .catch(error => console.error('Error al cargar la carta:', error));
+</script>
+
+</body>
+</html>

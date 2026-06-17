@@ -21,6 +21,19 @@ let configLinks = {
   reviews_url: 'https://www.google.com/search?q=Atlantida+Cafe+Rese%C3%B1as#lkt=LocalPoiReviews'
 };
 
+// --- CONFIGURACIÓN DE HORARIOS (OPENING HOURS) ---
+// Configura aquí los horarios del bar en formato de 24h.
+// 0: Domingo, 1: Lunes, 2: Martes, 3: Miércoles, 4: Jueves, 5: Viernes, 6: Sábado
+// Si cruza la medianoche (ej. cierra a las 02:00), el algoritmo lo detecta automáticamente.
+const openingHours = {
+  1: { open: '16:00', close: '00:00' }, // Lunes
+  2: { open: '16:00', close: '00:00' }, // Martes
+  3: { open: '16:00', close: '00:00' }, // Miércoles
+  4: { open: '16:00', close: '00:00' }, // Jueves
+  5: { open: '16:00', close: '02:00' }, // Viernes
+  6: { open: '16:00', close: '02:00' }  // Sábado
+  // Domingo cerrado - al omitirlo, el sistema lo detecta como cerrado automáticamente
+};
 
 // --- MOCK DATA (FALLBACK) ---
 // Se muestra si la red falla o si no se ha configurado el ID del Sheet
@@ -103,6 +116,7 @@ const debugRowsCount = document.getElementById('debug-rows-count');
 document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   checkDebugMode();
+  initStatusWidget(); // Inicializa el widget de abierto/cerrado
   loadData();
   loadConfig(); // Inicia la carga de la configuración de enlaces
 });
@@ -549,3 +563,105 @@ function updateActionButtons() {
   if (btnReviews && configLinks.reviews_url) btnReviews.href = configLinks.reviews_url;
 }
 
+// --- WIDGET DE ESTADO ABIERTO/CERRADO ---
+function initStatusWidget() {
+  const widget = document.getElementById('status-widget');
+  if (!widget) return;
+  
+  const { isOpen, nextOpenInfo } = checkOpenStatus();
+  
+  widget.className = `status-widget ${isOpen ? 'open' : 'closed'}`;
+  
+  const text = widget.querySelector('.status-text');
+  if (text) {
+    if (isOpen) {
+      text.textContent = "Estamos abiertos. Te esperamos en Atlantida Café";
+    } else {
+      text.textContent = nextOpenInfo;
+    }
+  }
+}
+
+function checkOpenStatus() {
+  const now = new Date();
+  const day = now.getDay(); // 0-6 (0: Domingo, 1: Lunes...)
+  const hour = now.getHours();
+  const minute = now.getMinutes();
+  const currentTime = hour * 60 + minute; // Tiempo actual en minutos desde medianoche
+  
+  let isOpen = false;
+  let nextOpenInfo = "";
+  
+  const yesterday = (day + 6) % 7;
+  const todaySchedule = openingHours[day];
+  const yesterdaySchedule = openingHours[yesterday];
+  
+  // 1. Comprobar si el turno de ayer cruzó la medianoche y sigue activo hoy
+  if (yesterdaySchedule) {
+    const [yOpenH, yOpenM] = yesterdaySchedule.open.split(':').map(Number);
+    const [yCloseH, yCloseM] = yesterdaySchedule.close.split(':').map(Number);
+    
+    const yOpenMin = yOpenH * 60 + yOpenM;
+    const yCloseMin = yCloseH * 60 + yCloseM;
+    
+    if (yCloseMin < yOpenMin) {
+      // Cruzó la medianoche (ej: abre 16:00 y cierra 02:00)
+      // En el nuevo día, el horario activo de ayer es de 00:00 a 02:00 (yCloseMin)
+      if (currentTime < yCloseMin) {
+        isOpen = true;
+      }
+    }
+  }
+  
+  // 2. Comprobar el turno de hoy
+  if (!isOpen && todaySchedule) {
+    const [tOpenH, tOpenM] = todaySchedule.open.split(':').map(Number);
+    const [tCloseH, tCloseM] = todaySchedule.close.split(':').map(Number);
+    
+    const tOpenMin = tOpenH * 60 + tOpenM;
+    const tCloseMin = tCloseH * 60 + tCloseM;
+    
+    if (tCloseMin > tOpenMin) {
+      // Horario normal dentro del mismo día
+      if (currentTime >= tOpenMin && currentTime < tCloseMin) {
+        isOpen = true;
+      }
+    } else {
+      // Horario que cruza la medianoche
+      if (currentTime >= tOpenMin || currentTime < tCloseMin) {
+        isOpen = true;
+      }
+    }
+  }
+  
+  // 3. Si está cerrado, calcular cuándo abre
+  if (!isOpen) {
+    // ¿Abre más tarde hoy?
+    if (todaySchedule) {
+      const [tOpenH, tOpenM] = todaySchedule.open.split(':').map(Number);
+      const tOpenMin = tOpenH * 60 + tOpenM;
+      if (currentTime < tOpenMin) {
+        nextOpenInfo = `Cerrado. Abrimos hoy a las ${todaySchedule.open}`;
+      }
+    }
+    
+    // Si no abre hoy o ya pasó la hora, buscar el próximo día con horario disponible
+    if (!nextOpenInfo) {
+      const dayNames = ["el Domingo", "el Lunes", "el Martes", "el Miércoles", "el Jueves", "el Viernes", "el Sábado"];
+      for (let i = 1; i <= 7; i++) {
+        const nextDay = (day + i) % 7;
+        const nextSchedule = openingHours[nextDay];
+        if (nextSchedule) {
+          nextOpenInfo = `Cerrado. Abrimos ${dayNames[nextDay]} a las ${nextSchedule.open}`;
+          break;
+        }
+      }
+    }
+    
+    if (!nextOpenInfo) {
+      nextOpenInfo = "Cerrado temporalmente";
+    }
+  }
+  
+  return { isOpen, nextOpenInfo };
+}

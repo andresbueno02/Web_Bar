@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atlantida Cafe - Bar & Cafetería Minimalista</title>
+  <meta name="description" content="Descubre la carta exclusiva de Atlantida Cafe. Coctelería de autor, cafés de especialidad, tapas gourmet y un ambiente minimalista único. Reserva tu mesa hoy.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons (for minimal icons) -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  
+  <!-- Background Ambient Glows -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <div class="app-container">
+    
+    <!-- Header Section -->
+    <header class="main-header">
+      <div class="brand">
+        <img src="logo.png" alt="Atlantida Cafe Logo" class="brand-logo" id="brand-logo" onerror="this.style.display='none'">
+        <span class="brand-subtitle">CAFÉ & BAR</span>
+        <h1 class="brand-title">Atlantida Cafe</h1>
+        <p class="brand-tagline">Ingredientes seleccionados, atmósfera atenuada y café de especialidad.</p>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <nav class="action-buttons">
+        <a href="https://www.google.com/maps/place/Atlantida+Cafe/@36.6995757,-4.4504108,17z/data=!3m1!4b1!4m6!3m5!1s0xd72f77d5d9271d5:0x5455e785796eca9a!8m2!3d36.6995714!4d-4.4478359!16s%2Fg%2F11ckr5k1b8" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" id="btn-location">
+          <i data-lucide="map-pin"></i>
+          <span>Dónde Encontrarnos</span>
+        </a>
+        <a href="https://www.instagram.com/atlantida_cafe?igsh=aHo5MzlpZmI1aWFu" target="_blank" rel="noopener noreferrer" class="btn btn-primary" id="btn-reservations">
+          <i data-lucide="instagram"></i>
+          <span>Reservar en Instagram</span>
+        </a>
+        <a href="https://www.google.com/search?q=Atlantida+Cafe+Rese%C3%B1as#lkt=LocalPoiReviews" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" id="btn-reviews">
+          <i data-lucide="star"></i>
+          <span>Dejar Reseña</span>
+        </a>
+      </nav>
+    </header>
+
+    <!-- Data Pipeline Status Bar (Data Engineering Showcase) -->
+    <section class="pipeline-badge-container">
+      <button class="pipeline-badge" id="btn-toggle-debugger">
+        <span class="status-indicator status-syncing" id="connection-status-dot"></span>
+        <span id="connection-status-text">Conectando con Google Sheets API...</span>
+        <i data-lucide="chevron-down" class="chevron-icon" id="debugger-chevron"></i>
+      </button>
+      
+      <!-- Collapsible Data Debugger Panel -->
+      <div class="debugger-panel" id="debugger-panel">
+        <div class="debugger-header">
+          <h3><i data-lucide="database"></i> Data Pipeline Debugger</h3>
+          <p>Esta sección demuestra el flujo de datos del proyecto de ingeniería de datos.</p>
+        </div>
+        <div class="debugger-grid">
+          <div class="debugger-item">
+            <span class="label">Google Sheet ID:</span>
+            <code class="value truncate" id="debug-sheet-id">Cargando...</code>
+          </div>
+          <div class="debugger-item">
+            <span class="label">Endpoint del API:</span>
+            <a href="#" target="_blank" class="value link truncate" id="debug-api-url">Ver JSON crudo <i data-lucide="external-link"></i></a>
+          </div>
+          <div class="debugger-item">
+            <span class="label">Última Sincronización:</span>
+            <span class="value" id="debug-last-sync">-</span>
+          </div>
+          <div class="debugger-item">
+            <span class="label">Registros Procesados:</span>
+            <span class="value" id="debug-rows-count">0</span>
+          </div>
+        </div>
+        <div class="debugger-source-info">
+          <p><strong>¿Cómo funciona?</strong> La base de datos en Google Sheets se consulta usando la API de Visualización de Google, devolviendo un payload JSON que es filtrado y renderizado dinámicamente en el cliente sin backend intermedio.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Menu Section -->
+    <main class="menu-section">
+      
+      <!-- Category Filters -->
+      <nav class="category-filters" id="category-filters">
+        <button class="filter-btn active" data-category="all">Todo</button>
+        <!-- Categories will be generated dynamically -->
+      </nav>
+
+      <!-- Menu Items Grid / List -->
+      <div class="menu-grid" id="menu-grid">
+        <!-- Skeleton Loaders (Shimmer Effect) -->
+        <div class="menu-item-skeleton">
+          <div class="skeleton-image"></div>
+          <div class="skeleton-info">
+            <div class="skeleton-title-row">
+              <div class="skeleton-line title"></div>
+              <div class="skeleton-line price"></div>
+            </div>
+            <div class="skeleton-line desc"></div>
+            <div class="skeleton-line desc short"></div>
+          </div>
+        </div>
+        <div class="menu-item-skeleton">
+          <div class="skeleton-image"></div>
+          <div class="skeleton-info">
+            <div class="skeleton-title-row">
+              <div class="skeleton-line title"></div>
+              <div class="skeleton-line price"></div>
+            </div>
+            <div class="skeleton-line desc"></div>
+            <div class="skeleton-line desc short"></div>
+          </div>
+        </div>
+        <div class="menu-item-skeleton">
+          <div class="skeleton-image"></div>
+          <div class="skeleton-info">
+            <div class="skeleton-title-row">
+              <div class="skeleton-line title"></div>
+              <div class="skeleton-line price"></div>
+            </div>
+            <div class="skeleton-line desc"></div>
+            <div class="skeleton-line desc short"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error and Empty States -->
+      <div class="error-container hidden" id="error-container">
+        <i data-lucide="alert-circle" class="error-icon"></i>
+        <h2>Error al sincronizar la carta</h2>
+        <p id="error-message">No se pudo establecer conexión con el origen de datos en Google Sheets.</p>
+        <button class="btn btn-secondary" id="btn-retry">
+          <i data-lucide="refresh-cw"></i>
+          <span>Reintentar Sincronización</span>
+        </button>
+      </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+      <p>&copy; 2026 L'Aura Bar. Todos los derechos reservados.</p>
+      <p class="data-credit">Data pipeline conectado vía Google Sheets JSON API.</p>
+    </footer>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

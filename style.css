@@ -1,0 +1,716 @@
+/* ----------------------------------------------------
+   DESIGN SYSTEM & VARIABLES
+---------------------------------------------------- */
+:root {
+  /* Color Palette - Dark Premium Gold & Charcoal */
+  --bg-color: #0c0b0a;
+  --bg-card: rgba(22, 20, 19, 0.65);
+  --border-color: rgba(197, 168, 128, 0.12);
+  --border-hover: rgba(197, 168, 128, 0.35);
+  
+  --primary: #c59b27;
+  --primary-hover: #e5b842;
+  --primary-glow: rgba(197, 155, 39, 0.15);
+  
+  --text-main: #f5f5f4;
+  --text-muted: #a8a29e;
+  --text-dark: #78716c;
+  
+  --success: #10b981;
+  --error: #ef4444;
+  --warning: #f59e0b;
+  
+  /* Fonts */
+  --font-serif: 'Playfair Display', serif;
+  --font-sans: 'Inter', sans-serif;
+  
+  /* Shadows & Blur */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.7);
+  --shadow-glow: 0 0 20px rgba(197, 155, 39, 0.1);
+  --blur-glass: blur(16px);
+  
+  /* Transitions */
+  --transition-smooth: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-bounce: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ----------------------------------------------------
+   BASE STYLE & RESET
+---------------------------------------------------- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  line-height: 1.6;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Ambient glow blobs in the background */
+.ambient-glow {
+  position: absolute;
+  width: 40vw;
+  height: 40vw;
+  border-radius: 50%;
+  filter: blur(100px);
+  pointer-events: none;
+  opacity: 0.12;
+  z-index: 0;
+}
+
+.glow-1 {
+  background-color: var(--primary);
+  top: -10%;
+  right: -5%;
+}
+
+.glow-2 {
+  background-color: #854d0e;
+  bottom: 10%;
+  left: -10%;
+}
+
+/* ----------------------------------------------------
+   LAYOUT CONTAINER
+---------------------------------------------------- */
+.app-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  gap: 3rem;
+}
+
+/* ----------------------------------------------------
+   HEADER & ACTIONS
+---------------------------------------------------- */
+.main-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.brand-logo {
+  max-height: 140px;
+  width: auto;
+  margin-bottom: 0.5rem;
+  filter: drop-shadow(0 2px 12px rgba(255, 255, 255, 0.08));
+  transition: var(--transition-smooth);
+}
+
+.brand-logo:hover {
+  transform: scale(1.05);
+}
+
+.brand-subtitle {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  letter-spacing: 0.25em;
+  color: var(--primary);
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.brand-title {
+  font-family: var(--font-serif);
+  font-size: 3.5rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--text-main);
+  line-height: 1.1;
+}
+
+.brand-tagline {
+  font-size: 1rem;
+  color: var(--text-muted);
+  max-width: 460px;
+  font-weight: 300;
+  margin-top: 0.5rem;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.6rem;
+  border-radius: 50px;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: var(--bg-color);
+  border: 1px solid var(--primary);
+  box-shadow: var(--shadow-glow);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+  border-color: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px var(--primary-glow);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  backdrop-filter: var(--blur-glass);
+}
+
+.btn-secondary:hover {
+  border-color: var(--border-hover);
+  background-color: rgba(255, 255, 255, 0.03);
+  transform: translateY(-2px);
+}
+
+.btn i {
+  width: 18px;
+  height: 18px;
+}
+
+/* ----------------------------------------------------
+   DATA PIPELINE & DEBUGGER
+---------------------------------------------------- */
+.pipeline-badge-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.pipeline-badge {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  padding: 0.6rem 1.2rem;
+  border-radius: 50px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  backdrop-filter: var(--blur-glass);
+}
+
+.pipeline-badge:hover {
+  border-color: var(--border-hover);
+  color: var(--text-main);
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  position: relative;
+}
+
+.status-syncing {
+  background-color: var(--warning);
+  box-shadow: 0 0 8px var(--warning);
+  animation: pulse 1.5s infinite;
+}
+
+.status-online {
+  background-color: var(--success);
+  box-shadow: 0 0 8px var(--success);
+}
+
+.status-offline {
+  background-color: var(--error);
+  box-shadow: 0 0 8px var(--error);
+}
+
+.chevron-icon {
+  width: 14px;
+  height: 14px;
+  transition: var(--transition-smooth);
+}
+
+.chevron-icon.open {
+  transform: rotate(180deg);
+}
+
+/* Debugger Panel */
+.debugger-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+  opacity: 0;
+  width: 100%;
+  max-width: 700px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-top: none;
+  border-radius: 0 0 16px 16px;
+  padding: 0 1.5rem;
+  backdrop-filter: var(--blur-glass);
+  margin-top: -10px; /* Connects smoothly to badge */
+  box-shadow: var(--shadow-lg);
+}
+
+.debugger-panel.open {
+  max-height: 400px;
+  opacity: 1;
+  padding: 1.8rem 1.5rem 1.5rem 1.5rem;
+}
+
+.debugger-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.debugger-header h3 {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.debugger-header h3 i {
+  color: var(--primary);
+  width: 16px;
+  height: 16px;
+}
+
+.debugger-header p {
+  font-size: 0.75rem;
+  color: var(--text-dark);
+  margin-top: 0.2rem;
+}
+
+.debugger-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 600px) {
+  .debugger-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.debugger-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.debugger-item .label {
+  font-size: 0.7rem;
+  color: var(--text-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.debugger-item .value {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+.debugger-item .link {
+  color: var(--primary);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.debugger-item .link:hover {
+  text-decoration: underline;
+  color: var(--primary-hover);
+}
+
+.debugger-item .link i {
+  width: 12px;
+  height: 12px;
+}
+
+.debugger-source-info {
+  margin-top: 1.2rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 0.75rem;
+  color: var(--text-dark);
+  line-height: 1.4;
+}
+
+.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ----------------------------------------------------
+   MENU SECTION & FILTERS
+---------------------------------------------------- */
+.menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.category-filters {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 1rem;
+}
+
+.filter-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 400;
+  padding: 0.5rem 1.2rem;
+  cursor: pointer;
+  position: relative;
+  transition: var(--transition-smooth);
+}
+
+.filter-btn:hover {
+  color: var(--text-main);
+}
+
+.filter-btn.active {
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.filter-btn::after {
+  content: '';
+  position: absolute;
+  bottom: -1rem;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--primary);
+  transform: scaleX(0);
+  transition: var(--transition-smooth);
+}
+
+.filter-btn.active::after {
+  transform: scaleX(1);
+}
+
+/* ----------------------------------------------------
+   MENU GRID & CARDS
+---------------------------------------------------- */
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 2rem;
+  transition: var(--transition-smooth);
+}
+
+/* Card Styling */
+.menu-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: var(--transition-bounce);
+  backdrop-filter: var(--blur-glass);
+  position: relative;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: cardFadeIn 0.6s forwards;
+}
+
+.menu-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+}
+
+.card-image-container {
+  height: 200px;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s ease;
+}
+
+.menu-card:hover .card-image {
+  transform: scale(1.05);
+}
+
+.card-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(197, 168, 128, 0.15);
+  background: linear-gradient(135deg, rgba(25,23,22,1) 0%, rgba(12,11,10,1) 100%);
+}
+
+.card-image-placeholder i {
+  width: 48px;
+  height: 48px;
+  stroke-width: 1;
+}
+
+.card-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background-color: rgba(12, 11, 10, 0.85);
+  border: 1px solid var(--border-color);
+  color: var(--primary);
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.3rem 0.8rem;
+  border-radius: 50px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  backdrop-filter: var(--blur-glass);
+}
+
+.card-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 0.75rem;
+}
+
+.card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.card-title {
+  font-family: var(--font-serif);
+  font-size: 1.35rem;
+  font-weight: 400;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.card-price {
+  font-family: var(--font-sans);
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--primary);
+  white-space: nowrap;
+}
+
+.card-description {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  font-weight: 300;
+}
+
+/* Hidden elements for filtering */
+.hidden {
+  display: none !important;
+}
+
+/* ----------------------------------------------------
+   SKELETON SHIMMER LOADERS
+---------------------------------------------------- */
+.menu-item-skeleton {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  overflow: hidden;
+  height: 350px;
+  display: flex;
+  flex-direction: column;
+}
+
+.skeleton-image {
+  height: 200px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.01) 25%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0.01) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-info {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.skeleton-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.skeleton-line {
+  background: linear-gradient(90deg, rgba(255,255,255,0.01) 25%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0.01) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.skeleton-line.title {
+  width: 60%;
+  height: 20px;
+}
+
+.skeleton-line.price {
+  width: 20%;
+  height: 18px;
+}
+
+.skeleton-line.desc {
+  width: 100%;
+  height: 14px;
+}
+
+.skeleton-line.desc.short {
+  width: 80%;
+}
+
+/* ----------------------------------------------------
+   ERROR & STATE STYLING
+---------------------------------------------------- */
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 4rem 2rem;
+  background-color: rgba(239, 68, 68, 0.03);
+  border: 1px dashed rgba(239, 68, 68, 0.2);
+  border-radius: 16px;
+  gap: 1rem;
+  max-width: 500px;
+  margin: 2rem auto;
+}
+
+.error-icon {
+  width: 48px;
+  height: 48px;
+  color: var(--error);
+}
+
+.error-container h2 {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: var(--text-main);
+}
+
+.error-container p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.error-container .btn {
+  margin-top: 1rem;
+}
+
+/* ----------------------------------------------------
+   FOOTER STYLE
+---------------------------------------------------- */
+.main-footer {
+  margin-top: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-dark);
+}
+
+.data-credit {
+  color: var(--primary);
+  opacity: 0.6;
+}
+
+/* ----------------------------------------------------
+   ANIMATIONS
+---------------------------------------------------- */
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes cardFadeIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Adjust card list delay sequentially */
+.menu-card:nth-child(1) { animation-delay: 0.05s; }
+.menu-card:nth-child(2) { animation-delay: 0.1s; }
+.menu-card:nth-child(3) { animation-delay: 0.15s; }
+.menu-card:nth-child(4) { animation-delay: 0.2s; }
+.menu-card:nth-child(5) { animation-delay: 0.25s; }
+.menu-card:nth-child(6) { animation-delay: 0.3s; }

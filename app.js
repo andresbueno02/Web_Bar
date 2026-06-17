@@ -26,13 +26,13 @@ let configLinks = {
 // 0: Domingo, 1: Lunes, 2: Martes, 3: Miércoles, 4: Jueves, 5: Viernes, 6: Sábado
 // Si cruza la medianoche (ej. cierra a las 02:00), el algoritmo lo detecta automáticamente.
 const openingHours = {
-  1: { open: '08:30', close: '22:00' }, // Lunes
-  2: { open: '08:30', close: '22:00' }, // Martes
-  3: { open: '08:30', close: '22:00' }, // Miércoles
-  4: { open: '08:30', close: '22:00' }, // Jueves
-  5: { open: '08:30', close: '02:00' }, // Viernes
-  6: { open: '09:30', close: '02:00' }, // Sábado
-  0: { open: '09:30', close: '22:00' }  // Domingo
+  1: { open: '16:00', close: '00:00' }, // Lunes
+  2: { open: '16:00', close: '00:00' }, // Martes
+  3: { open: '16:00', close: '00:00' }, // Miércoles
+  4: { open: '16:00', close: '00:00' }, // Jueves
+  5: { open: '16:00', close: '02:00' }, // Viernes
+  6: { open: '16:00', close: '02:00' }  // Sábado
+  // Domingo cerrado - al omitirlo, el sistema lo detecta como cerrado automáticamente
 };
 
 // --- MOCK DATA (FALLBACK) ---

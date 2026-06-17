@@ -101,6 +101,7 @@ const debugRowsCount = document.getElementById('debug-rows-count');
 // --- INIT APP ---
 document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
+  checkDebugMode();
   loadData();
   loadConfig(); // Inicia la carga de la configuración de enlaces
 });
@@ -117,6 +118,22 @@ function setupEventListeners() {
   btnRetry.addEventListener('click', () => {
     loadData();
   });
+}
+
+function checkDebugMode() {
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const hasDebugParam = new URLSearchParams(window.location.search).has('debug');
+  const showDebugger = isLocal || hasDebugParam;
+  
+  const pipelineContainer = document.querySelector('.pipeline-badge-container');
+  const dataCredit = document.querySelector('.data-credit');
+  
+  if (pipelineContainer) {
+    pipelineContainer.style.display = showDebugger ? 'flex' : 'none';
+  }
+  if (dataCredit) {
+    dataCredit.style.display = showDebugger ? 'block' : 'none';
+  }
 }
 
 // --- DATA PIPELINE (API FETCH) ---

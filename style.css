@@ -124,6 +124,48 @@ body {
   transform: scale(1.05);
 }
 
+.status-widget {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  padding: 0.4rem 0.9rem;
+  border-radius: 50px;
+  font-size: 0.75rem;
+  margin-top: 0.8rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  backdrop-filter: var(--blur-glass);
+  transition: var(--transition-smooth);
+}
+
+.status-widget .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-widget.open .status-dot {
+  background-color: var(--success);
+  box-shadow: 0 0 6px var(--success);
+  animation: pulse 1.8s infinite;
+}
+
+.status-widget.closed .status-dot {
+  background-color: var(--error);
+  box-shadow: 0 0 6px var(--error);
+}
+
+.status-widget.open .status-text {
+  color: var(--text-main);
+}
+
+.status-widget.closed .status-text {
+  color: var(--text-muted);
+}
+
 .brand-subtitle {
   font-family: var(--font-sans);
   font-size: 0.8rem;

@@ -195,6 +195,13 @@ async function loadData() {
     // Show user-friendly log
     debugSheetId.textContent = `${SPREADSHEET_ID.substring(0, 15)}... (Fallback local)`;
   } finally {
+    // Sort menuData by price ascending
+    menuData.sort((a, b) => {
+      const priceA = typeof a.price === 'number' ? a.price : parseFloat(String(a.price).replace(',', '.')) || 0;
+      const priceB = typeof b.price === 'number' ? b.price : parseFloat(String(b.price).replace(',', '.')) || 0;
+      return priceA - priceB;
+    });
+
     // Refresh GUI
     renderCategories();
     renderMenu();

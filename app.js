@@ -142,6 +142,7 @@ function setupEventListeners() {
 
   searchInput.addEventListener('input', (e) => {
     searchTerm = e.target.value.toLowerCase();
+    syncCategoryUI();
     renderMenu();
   });
 
@@ -394,6 +395,7 @@ function renderCategories() {
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       activeCategory = cat;
+      syncCategoryUI();
       renderMenu();
     });
     
@@ -401,13 +403,27 @@ function renderCategories() {
   });
 }
 
+function syncCategoryUI() {
+  const isSearching = searchTerm.trim() !== '';
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    if (isSearching) {
+      btn.classList.toggle('active', btn.dataset.category === 'all');
+    } else {
+      btn.classList.toggle('active', btn.dataset.category === activeCategory);
+    }
+  });
+}
+
 function renderMenu() {
   menuGrid.innerHTML = '';
   
-  // Filter by category
-  let filteredData = activeCategory === 'all' 
-    ? [...menuData] 
-    : menuData.filter(item => item.category === activeCategory);
+  // Filter by category (ignored when search is active)
+  const isSearching = searchTerm.trim() !== '';
+  let filteredData = isSearching
+    ? [...menuData]
+    : activeCategory === 'all' 
+      ? [...menuData] 
+      : menuData.filter(item => item.category === activeCategory);
   
   // Filter by search term
   if (searchTerm.trim() !== '') {

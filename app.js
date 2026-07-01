@@ -427,9 +427,10 @@ function renderMenu() {
   
   // Filter by search term
   if (searchTerm.trim() !== '') {
+    const normalize = (str) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     filteredData = filteredData.filter(item => 
-      item.name.toLowerCase().includes(searchTerm) ||
-      (item.description && item.description.toLowerCase().includes(searchTerm))
+      normalize(item.name).includes(normalize(searchTerm)) ||
+      (item.description && normalize(item.description).includes(normalize(searchTerm)))
     );
   }
   

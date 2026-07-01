@@ -95,10 +95,19 @@
     <!-- Menu Section -->
     <main class="menu-section">
       
-      <!-- Category Filters -->
-      <nav class="category-filters" id="category-filters">
-        <button class="filter-btn active" data-category="all">Todo</button>
-        <!-- Categories will be generated dynamically -->
+      <!-- Category Filters & Controls -->
+      <nav class="controls-container" id="controls-container">
+        <div class="category-filters" id="category-filters">
+          <button class="filter-btn active" data-category="all">Todo</button>
+          <!-- Categories will be generated dynamically -->
+        </div>
+        <div class="search-sort-controls">
+          <input type="text" id="search-input" placeholder="Buscar producto..." class="search-input">
+          <select id="sort-select" class="sort-select">
+            <option value="price-asc">Precio (Asc)</option>
+            <option value="name-asc">Nombre (A-Z)</option>
+          </select>
+        </div>
       </nav>
 
       <!-- Menu Items Grid / List -->

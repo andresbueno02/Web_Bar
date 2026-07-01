@@ -12,6 +12,8 @@ let SPREADSHEET_ID = DEFAULT_SPREADSHEET_ID;
 // --- STATE MANAGEMENT ---
 let menuData = [];
 let activeCategory = 'all';
+let searchTerm = '';
+let sortOrder = 'price-asc';
 
 // --- CONFIGURATION LINKS (FALLBACK & SHEET DB) ---
 // Estos enlaces se usarán por defecto si no se encuentra la pestaña "Config" en el Google Sheet
@@ -133,6 +135,20 @@ function setupEventListeners() {
   btnRetry.addEventListener('click', () => {
     loadData();
   });
+
+  // Search and Sort inputs
+  const searchInput = document.getElementById('search-input');
+  const sortSelect = document.getElementById('sort-select');
+
+  searchInput.addEventListener('input', (e) => {
+    searchTerm = e.target.value.toLowerCase();
+    renderMenu();
+  });
+
+  sortSelect.addEventListener('change', (e) => {
+    sortOrder = e.target.value;
+    renderMenu();
+  });
 }
 
 function checkDebugMode() {
@@ -195,13 +211,6 @@ async function loadData() {
     // Show user-friendly log
     debugSheetId.textContent = `${SPREADSHEET_ID.substring(0, 15)}... (Fallback local)`;
   } finally {
-    // Sort menuData by price ascending
-    menuData.sort((a, b) => {
-      const priceA = typeof a.price === 'number' ? a.price : parseFloat(String(a.price).replace(',', '.')) || 0;
-      const priceB = typeof b.price === 'number' ? b.price : parseFloat(String(b.price).replace(',', '.')) || 0;
-      return priceA - priceB;
-    });
-
     // Refresh GUI
     renderCategories();
     renderMenu();
@@ -395,16 +404,38 @@ function renderCategories() {
 function renderMenu() {
   menuGrid.innerHTML = '';
   
-  const filteredData = activeCategory === 'all' 
-    ? menuData 
+  // Filter by category
+  let filteredData = activeCategory === 'all' 
+    ? [...menuData] 
     : menuData.filter(item => item.category === activeCategory);
+  
+  // Filter by search term
+  if (searchTerm.trim() !== '') {
+    filteredData = filteredData.filter(item => 
+      item.name.toLowerCase().includes(searchTerm) ||
+      (item.description && item.description.toLowerCase().includes(searchTerm))
+    );
+  }
+  
+  // Sort
+  filteredData.sort((a, b) => {
+    if (sortOrder === 'price-asc') {
+      const priceA = typeof a.price === 'number' ? a.price : parseFloat(String(a.price).replace(',', '.')) || 0;
+      const priceB = typeof b.price === 'number' ? b.price : parseFloat(String(b.price).replace(',', '.')) || 0;
+      return priceA - priceB;
+    } else if (sortOrder === 'name-asc') {
+      return a.name.localeCompare(b.name, 'es');
+    }
+    return 0;
+  });
     
   if (filteredData.length === 0) {
+    const message = searchTerm ? `No hay resultados para "${searchTerm}"` : 'No hay platos disponibles en esta categoría en este momento.';
     menuGrid.innerHTML = `
       <div class="error-container">
         <i data-lucide="coffee" class="error-icon" style="color: var(--primary)"></i>
-        <h2>Carta no disponible</h2>
-        <p>No hay platos disponibles en esta categoría en este momento.</p>
+        <h2>Sin resultados</h2>
+        <p>${message}</p>
       </div>
     `;
     lucide.createIcons();

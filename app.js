@@ -14,6 +14,7 @@ let menuData = [];
 let activeCategory = 'all';
 let searchTerm = '';
 let sortOrder = 'price-asc';
+let savedCategory = 'all';
 
 // --- CONFIGURATION LINKS (FALLBACK & SHEET DB) ---
 // Estos enlaces se usarán por defecto si no se encuentra la pestaña "Config" en el Google Sheet
@@ -141,7 +142,18 @@ function setupEventListeners() {
   const sortSelect = document.getElementById('sort-select');
 
   searchInput.addEventListener('input', (e) => {
+    const wasEmpty = searchTerm.trim() === '';
     searchTerm = e.target.value.toLowerCase();
+
+    if (searchTerm.trim() === '') {
+      activeCategory = savedCategory;
+    } else {
+      if (wasEmpty) {
+        savedCategory = activeCategory;
+      }
+      activeCategory = 'all';
+    }
+
     syncCategoryUI();
     renderMenu();
   });
@@ -392,8 +404,12 @@ function renderCategories() {
     btn.setAttribute('data-category', cat);
     
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+      if (searchTerm.trim() !== '') {
+        const searchInput = document.getElementById('search-input');
+        searchInput.value = '';
+        searchTerm = '';
+        savedCategory = cat;
+      }
       activeCategory = cat;
       syncCategoryUI();
       renderMenu();
@@ -404,26 +420,18 @@ function renderCategories() {
 }
 
 function syncCategoryUI() {
-  const isSearching = searchTerm.trim() !== '';
   document.querySelectorAll('.filter-btn').forEach(btn => {
-    if (isSearching) {
-      btn.classList.toggle('active', btn.dataset.category === 'all');
-    } else {
-      btn.classList.toggle('active', btn.dataset.category === activeCategory);
-    }
+    btn.classList.toggle('active', btn.dataset.category === activeCategory);
   });
 }
 
 function renderMenu() {
   menuGrid.innerHTML = '';
   
-  // Filter by category (ignored when search is active)
-  const isSearching = searchTerm.trim() !== '';
-  let filteredData = isSearching
-    ? [...menuData]
-    : activeCategory === 'all' 
-      ? [...menuData] 
-      : menuData.filter(item => item.category === activeCategory);
+  // Filter by category
+  let filteredData = activeCategory === 'all' 
+    ? [...menuData] 
+    : menuData.filter(item => item.category === activeCategory);
   
   // Filter by search term
   if (searchTerm.trim() !== '') {

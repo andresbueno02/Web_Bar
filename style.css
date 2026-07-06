@@ -433,6 +433,17 @@ body {
   gap: 1rem;
   margin-bottom: 2rem;
   align-items: center;
+  /* Barra fija al hacer scroll: filtros y buscador siempre a mano en listas largas */
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background-color: rgba(12, 11, 10, 0.92);
+  backdrop-filter: var(--blur-glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  /* Sangrar hasta el borde del contenedor para que el contenido no asome por los lados */
+  margin-left: -1.5rem;
+  margin-right: -1.5rem;
+  padding: 0.85rem 1.5rem 1rem;
 }
 
 .search-sort-controls {
@@ -648,6 +659,69 @@ body {
 /* Hidden elements for filtering */
 .hidden {
   display: none !important;
+}
+
+/* ----------------------------------------------------
+   BOTÓN VOLVER ARRIBA
+---------------------------------------------------- */
+.btn-top {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  cursor: pointer;
+  backdrop-filter: var(--blur-glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition: var(--transition-smooth);
+}
+
+.btn-top.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.btn-top:hover {
+  border-color: var(--border-hover);
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.btn-top i {
+  width: 20px;
+  height: 20px;
+}
+
+/* Categorías en fila única con scroll horizontal en móvil,
+   para que la barra fija no ocupe media pantalla */
+@media (max-width: 600px) {
+  .category-filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .category-filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filter-btn {
+    flex-shrink: 0;
+  }
 }
 
 /* ----------------------------------------------------

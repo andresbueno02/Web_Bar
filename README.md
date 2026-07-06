@@ -48,7 +48,15 @@ Crea una pestaña llamada exactamente `Config`. Esta hoja debe tener dos columna
 | `google_maps_url` | *El enlace a Google Maps de tu ubicación* |
 | `reviews_url` | *El enlace para que tus clientes dejen opiniones en Google/TripAdvisor* |
 
-*Nota: Si no creas la pestaña `Config`, la web funcionará perfectamente utilizando los enlaces por defecto configurados en el archivo `app.js`.*
+**Horarios de apertura (opcional):** puedes definir el horario de cada día con las claves `horario_lunes`, `horario_martes`, `horario_miercoles`, `horario_jueves`, `horario_viernes`, `horario_sabado` y `horario_domingo`. El valor es `HH:MM-HH:MM` (ej: `16:00-00:00`; puede cruzar la medianoche, ej: `16:00-02:00`) o `cerrado`. Si defines al menos una clave `horario_*`, los días que no aparezcan cuentan como cerrados; si no defines ninguna, se usan los horarios por defecto de `app.js`.
+
+| Clave | Valor |
+|---|---|
+| `horario_lunes` | `16:00-00:00` |
+| `horario_viernes` | `16:00-02:00` |
+| `horario_domingo` | `cerrado` |
+
+*Nota: Si no creas la pestaña `Config`, la web funcionará perfectamente utilizando los enlaces y horarios por defecto configurados en el archivo `app.js`.*
 
 ### 2. Compartir y Publicar la Hoja
 Para que la API pueda acceder a los datos sin credenciales pesadas de Google Cloud, debes hacer el documento legible públicamente:

@@ -5,7 +5,69 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Atlantida Cafe - Bar & Cafetería Minimalista</title>
   <meta name="description" content="Descubre la carta exclusiva de Atlantida Cafe. Coctelería de autor, cafés de especialidad, tapas gourmet y un ambiente minimalista único. Reserva tu mesa hoy.">
-  
+
+  <!-- Favicon e icono de app -->
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0c0b0a">
+
+  <!-- Open Graph: vista previa al compartir por WhatsApp, Instagram, etc. -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Atlantida Cafe">
+  <meta property="og:title" content="Atlantida Cafe - Café & Bar en Málaga">
+  <meta property="og:description" content="Descubre nuestra carta: cafés de especialidad, cócteles y bebidas en un ambiente minimalista único.">
+  <meta property="og:url" content="https://atlantidacafe.es/">
+  <meta property="og:image" content="https://atlantidacafe.es/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="es_ES">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Datos estructurados para Google (negocio local) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "CafeOrCoffeeShop",
+    "name": "Atlantida Cafe",
+    "url": "https://atlantidacafe.es/",
+    "image": "https://atlantidacafe.es/og-image.png",
+    "logo": "https://atlantidacafe.es/logo.png",
+    "priceRange": "€",
+    "servesCuisine": "Cafés de especialidad, cócteles y bebidas",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Málaga",
+      "postalCode": "29003",
+      "addressRegion": "Málaga",
+      "addressCountry": "ES"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": 36.6995714,
+      "longitude": -4.4478359
+    },
+    "sameAs": [
+      "https://www.instagram.com/atlantida_cafe"
+    ],
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday"],
+        "opens": "16:00",
+        "closes": "00:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Friday", "Saturday"],
+        "opens": "16:00",
+        "closes": "02:00"
+      }
+    ]
+  }
+  </script>
+
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -160,6 +222,11 @@
       </div>
 
     </main>
+
+    <!-- Botón volver arriba -->
+    <button class="btn-top" id="btn-top" aria-label="Volver arriba">
+      <i data-lucide="arrow-up"></i>
+    </button>
 
     <!-- Footer -->
     <footer class="main-footer">

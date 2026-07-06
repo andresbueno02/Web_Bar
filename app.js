@@ -28,7 +28,10 @@ let configLinks = {
 // Configura aquí los horarios del bar en formato de 24h.
 // 0: Domingo, 1: Lunes, 2: Martes, 3: Miércoles, 4: Jueves, 5: Viernes, 6: Sábado
 // Si cruza la medianoche (ej. cierra a las 02:00), el algoritmo lo detecta automáticamente.
-const openingHours = {
+// Estos valores son el respaldo: si la pestaña "Config" del Google Sheet define
+// claves "horario_lunes", "horario_martes"... (valor "16:00-00:00" o "cerrado"),
+// los horarios se leen de ahí y estos se ignoran.
+const openingHoursDefecto = {
   1: { open: '16:00', close: '00:00' }, // Lunes
   2: { open: '16:00', close: '00:00' }, // Martes
   3: { open: '16:00', close: '00:00' }, // Miércoles
@@ -37,6 +40,7 @@ const openingHours = {
   6: { open: '16:00', close: '02:00' }  // Sábado
   // Domingo cerrado - al omitirlo, el sistema lo detecta como cerrado automáticamente
 };
+let openingHours = openingHoursDefecto;
 
 // --- MOCK DATA (FALLBACK) ---
 // Se muestra si la red falla o si no se ha configurado el ID del Sheet
@@ -115,6 +119,27 @@ const debugApiUrl = document.getElementById('debug-api-url');
 const debugLastSync = document.getElementById('debug-last-sync');
 const debugRowsCount = document.getElementById('debug-rows-count');
 
+// --- CACHÉ LOCAL (carga instantánea y modo offline) ---
+// Guarda la última carta/config descargada para pintar al instante en la siguiente visita
+function leerCache(clave) {
+  try {
+    const raw = localStorage.getItem(clave);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && parsed.data !== undefined ? parsed.data : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function guardarCache(clave, data) {
+  try {
+    localStorage.setItem(clave, JSON.stringify({ ts: Date.now(), data: data }));
+  } catch (e) {
+    // p.ej. Safari en modo privado o cuota llena: la web funciona igual, sin caché
+  }
+}
+
 // --- INIT APP ---
 document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
@@ -163,6 +188,17 @@ function setupEventListeners() {
     sortOrder = e.target.value;
     renderMenu();
   });
+
+  // Botón volver arriba: aparece tras bajar un poco de scroll
+  const btnTop = document.getElementById('btn-top');
+  if (btnTop) {
+    window.addEventListener('scroll', () => {
+      btnTop.classList.toggle('visible', window.scrollY > 600);
+    }, { passive: true });
+    btnTop.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
 }
 
 function checkDebugMode() {
@@ -183,7 +219,17 @@ function checkDebugMode() {
 
 // --- DATA PIPELINE (API FETCH) ---
 async function loadData() {
-  showSkeletons();
+  if (menuData.length === 0) {
+    const cartaCacheada = leerCache('carta_cache');
+    if (cartaCacheada && cartaCacheada.length > 0) {
+      // Carga instantánea: pintamos la última carta guardada mientras sincronizamos
+      menuData = cartaCacheada;
+      renderCategories();
+      renderMenu();
+    } else {
+      showSkeletons();
+    }
+  }
   updateStatusIndicator('syncing', 'Sincronizando con Google Sheets...');
   errorContainer.classList.add('hidden');
   
@@ -211,6 +257,7 @@ async function loadData() {
     
     if (parsedData && parsedData.length > 0) {
       menuData = parsedData;
+      guardarCache('carta_cache', parsedData);
       updateStatusIndicator('online', 'Data Pipeline: Online (Google Sheets)');
     } else {
       throw new Error("No se obtuvieron registros o formato incorrecto.");
@@ -224,9 +271,14 @@ async function loadData() {
       // Solo en modo debug se muestra la carta de demostración
       menuData = mockMenuData;
       updateStatusIndicator('offline', 'Data Pipeline: Fallback Local (Modo Demostración)');
+    } else if (menuData.length > 0) {
+      // Hay caché: seguimos mostrando la última carta guardada
+      updateStatusIndicator('offline', 'Sin conexión: mostrando la última carta guardada');
+      updateDebuggerStats();
+      if (window.lucide) lucide.createIcons();
+      return;
     } else {
-      // En producción nunca mostramos la carta falsa: error con botón de reintento
-      menuData = [];
+      // Sin caché ni conexión: error con botón de reintento
       updateStatusIndicator('offline', 'Data Pipeline: Sin conexión');
       menuGrid.innerHTML = '';
       errorContainer.classList.remove('hidden');
@@ -569,26 +621,53 @@ function updateDebuggerStats() {
 }
 
 // --- CONFIG INGESTION (GOOGLE SHEETS SHEET2) ---
+
+// Mapa de nombres de día (con y sin tilde) a índice de getDay()
+const DIAS_CONFIG = {
+  'domingo': 0, 'lunes': 1, 'martes': 2, 'miercoles': 3, 'miércoles': 3,
+  'jueves': 4, 'viernes': 5, 'sabado': 6, 'sábado': 6
+};
+
+// Horarios definidos en el Sheet durante esta carga; si hay alguno, reemplazan al fallback
+let horariosSheet = null;
+
+// Aplica una pareja clave/valor de la pestaña Config (enlaces u horarios)
+function aplicarConfigClave(key, val) {
+  if (key === 'instagram_url' || key === 'instagram') configLinks.instagram_url = val;
+  else if (key === 'google_maps_url' || key === 'maps' || key === 'location') configLinks.google_maps_url = val;
+  else if (key === 'reviews_url' || key === 'reviews' || key === 'reseñas') configLinks.reviews_url = val;
+  else if (key.startsWith('horario_')) {
+    const dia = DIAS_CONFIG[key.slice('horario_'.length)];
+    if (dia === undefined) return;
+    if (!horariosSheet) horariosSheet = {};
+    // Formato esperado: "16:00-00:00"; "cerrado" (o formato inválido) = día cerrado
+    const m = val.match(/^(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/);
+    if (m) horariosSheet[dia] = { open: m[1], close: m[2] };
+  }
+}
+
+// Activar los horarios del Sheet (o volver al respaldo si el Sheet ya no define ninguno)
+function aplicarHorariosSheet() {
+  openingHours = horariosSheet || openingHoursDefecto;
+  initStatusWidget();
+}
+
 function parseCSVConfig(csvText) {
   try {
     const rows = parseCSV(csvText);
     if (rows.length < 2) return;
-    
+
     const headers = rows[0].map(h => h.trim().toLowerCase());
     const keyIdx = headers.findIndex(h => h === 'clave' || h === 'key');
     const valIdx = headers.findIndex(h => h === 'valor' || h === 'value');
-    
+
     if (keyIdx === -1 || valIdx === -1) return;
-    
+
     rows.slice(1).forEach(row => {
       if (row.length < 2) return;
       const key = row[keyIdx] ? row[keyIdx].trim().toLowerCase() : '';
       const val = row[valIdx] ? row[valIdx].trim() : '';
-      if (key && val) {
-        if (key === 'instagram_url' || key === 'instagram') configLinks.instagram_url = val;
-        else if (key === 'google_maps_url' || key === 'maps' || key === 'location') configLinks.google_maps_url = val;
-        else if (key === 'reviews_url' || key === 'reviews' || key === 'reseñas') configLinks.reviews_url = val;
-      }
+      if (key && val) aplicarConfigClave(key, val);
     });
     console.log("Configuración cargada desde CSV de Google Sheets:", configLinks);
   } catch (err) {
@@ -596,42 +675,51 @@ function parseCSVConfig(csvText) {
   }
 }
 
-// --- CONFIG INGESTION (GOOGLE SHEETS SHEET2) ---
 async function loadConfig() {
+  // Arranque instantáneo: aplicar la última config guardada mientras llega la fresca
+  const configCacheada = leerCache('config_cache');
+  if (configCacheada) {
+    if (configCacheada.links) configLinks = { ...configLinks, ...configCacheada.links };
+    if (configCacheada.horarios) {
+      openingHours = configCacheada.horarios;
+      initStatusWidget();
+    }
+    updateActionButtons();
+  }
+
   const isPublished = SPREADSHEET_ID.startsWith('2PACX');
   const configUrl = isPublished
     ? `https://docs.google.com/spreadsheets/d/e/${SPREADSHEET_ID}/pub?output=csv&gid=331338235`
     : `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=Config`;
-    
+
   try {
     const response = await fetch(configUrl);
     if (!response.ok) throw new Error("No config sheet");
     const text = await response.text();
-    
+
+    horariosSheet = null;
     if (isPublished) {
       parseCSVConfig(text);
     } else {
       // Ingesta JSON tradicional (gviz)
       const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S\w\W]*)\);/);
       if (!match || !match[1]) return;
-      
+
       const json = JSON.parse(match[1]);
       const table = json.table;
       if (!table || !table.rows) return;
-      
+
       table.rows.forEach(r => {
         if (r.c && r.c[0] && r.c[1]) {
           const key = r.c[0].v ? r.c[0].v.toString().trim().toLowerCase() : '';
           const val = r.c[1].v ? r.c[1].v.toString().trim() : '';
-          if (key && val) {
-            if (key === 'instagram_url' || key === 'instagram') configLinks.instagram_url = val;
-            else if (key === 'google_maps_url' || key === 'maps' || key === 'location') configLinks.google_maps_url = val;
-            else if (key === 'reviews_url' || key === 'reviews' || key === 'reseñas') configLinks.reviews_url = val;
-          }
+          if (key && val) aplicarConfigClave(key, val);
         }
       });
       console.log("Configuración de enlaces cargada con éxito de Google Sheets:", configLinks);
     }
+    aplicarHorariosSheet();
+    guardarCache('config_cache', { links: configLinks, horarios: horariosSheet });
   } catch (e) {
     console.log("Pestaña 'Config' no disponible en Google Sheets o formato incorrecto. Utilizando enlaces por defecto en app.js.");
   } finally {

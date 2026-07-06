@@ -120,6 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   checkDebugMode();
   initStatusWidget(); // Inicializa el widget de abierto/cerrado
+  setInterval(initStatusWidget, 60000); // Refresca abierto/cerrado sin recargar la página
   loadData();
   loadConfig(); // Inicia la carga de la configuración de enlaces
 });
@@ -215,21 +216,31 @@ async function loadData() {
       throw new Error("No se obtuvieron registros o formato incorrecto.");
     }
   } catch (error) {
-    console.warn("Fallo al conectar con Google Sheets API. Usando datos locales de demostración (Fallback). Motivo:", error.message);
-    
-    // Fallback to mock data for flawless user experience
-    menuData = mockMenuData;
-    updateStatusIndicator('offline', 'Data Pipeline: Fallback Local (Modo Demostración)');
-    
-    // Show user-friendly log
-    debugSheetId.textContent = `${SPREADSHEET_ID.substring(0, 15)}... (Fallback local)`;
-  } finally {
-    // Refresh GUI
-    renderCategories();
-    renderMenu();
-    updateDebuggerStats();
-    lucide.createIcons(); // Redraw icons
+    console.warn("Fallo al conectar con Google Sheets API. Motivo:", error.message);
+    debugSheetId.textContent = `${SPREADSHEET_ID.substring(0, 15)}... (sin conexión)`;
+
+    const isDebug = new URLSearchParams(window.location.search).has('debug');
+    if (isDebug) {
+      // Solo en modo debug se muestra la carta de demostración
+      menuData = mockMenuData;
+      updateStatusIndicator('offline', 'Data Pipeline: Fallback Local (Modo Demostración)');
+    } else {
+      // En producción nunca mostramos la carta falsa: error con botón de reintento
+      menuData = [];
+      updateStatusIndicator('offline', 'Data Pipeline: Sin conexión');
+      menuGrid.innerHTML = '';
+      errorContainer.classList.remove('hidden');
+      updateDebuggerStats();
+      if (window.lucide) lucide.createIcons();
+      return;
+    }
   }
+
+  // Refresh GUI
+  renderCategories();
+  renderMenu();
+  updateDebuggerStats();
+  if (window.lucide) lucide.createIcons(); // Redraw icons
 }
 
 // --- CSV PARSING UTILITIES ---
@@ -391,6 +402,16 @@ function parseGoogleSheetsJSON(rawText) {
 
 // --- RENDER FUNCTIONS ---
 
+// Escapa texto antes de insertarlo en innerHTML (los datos vienen del Sheet o del usuario)
+function escapeHTML(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function renderCategories() {
   // Extract unique categories
   const categories = ['all', ...new Set(menuData.map(item => item.category).filter(Boolean))];
@@ -435,7 +456,7 @@ function renderMenu() {
   
   // Filter by search term
   if (searchTerm.trim() !== '') {
-    const normalize = (str) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const normalize = (str) => String(str ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     filteredData = filteredData.filter(item => 
       normalize(item.name).includes(normalize(searchTerm)) ||
       (item.description && normalize(item.description).includes(normalize(searchTerm)))
@@ -449,13 +470,13 @@ function renderMenu() {
       const priceB = typeof b.price === 'number' ? b.price : parseFloat(String(b.price).replace(',', '.')) || 0;
       return priceA - priceB;
     } else if (sortOrder === 'name-asc') {
-      return a.name.localeCompare(b.name, 'es');
+      return String(a.name).localeCompare(String(b.name), 'es');
     }
     return 0;
   });
     
   if (filteredData.length === 0) {
-    const message = searchTerm ? `No hay resultados para "${searchTerm}"` : 'No hay platos disponibles en esta categoría en este momento.';
+    const message = searchTerm ? `No hay resultados para "${escapeHTML(searchTerm)}"` : 'No hay platos disponibles en esta categoría en este momento.';
     menuGrid.innerHTML = `
       <div class="error-container">
         <i data-lucide="coffee" class="error-icon" style="color: var(--primary)"></i>
@@ -463,54 +484,56 @@ function renderMenu() {
         <p>${message}</p>
       </div>
     `;
-    lucide.createIcons();
+    if (window.lucide) lucide.createIcons();
     return;
   }
-  
+
   filteredData.forEach(item => {
     const card = document.createElement('article');
     card.className = 'menu-card';
-    
+
     // Price formatter
-    const formattedPrice = typeof item.price === 'number' 
-      ? `${item.price.toFixed(2)}€` 
-      : `${item.price}`;
-      
+    const formattedPrice = typeof item.price === 'number'
+      ? `${item.price.toFixed(2)}€`
+      : `${escapeHTML(item.price)}`;
+
     // Image structure
     let imageHTML = `
       <div class="card-image-placeholder">
         <i data-lucide="glass-water"></i>
       </div>
     `;
-    
-    if (item.imageUrl && item.imageUrl.trim() !== '') {
+
+    // Solo se aceptan URLs http(s) para la imagen (evita javascript: y HTML inyectado)
+    const rawImageUrl = item.imageUrl ? String(item.imageUrl).trim() : '';
+    if (/^https?:\/\//i.test(rawImageUrl)) {
       imageHTML = `
-        <img src="${item.imageUrl}" alt="${item.name}" class="card-image" loading="lazy" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=&quot;card-image-placeholder&quot;><i data-lucide=&quot;image-off&quot;></i></div>'; lucide.createIcons();">
+        <img src="${escapeHTML(rawImageUrl)}" alt="${escapeHTML(item.name)}" class="card-image" loading="lazy" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=&quot;card-image-placeholder&quot;><i data-lucide=&quot;image-off&quot;></i></div>'; if (window.lucide) lucide.createIcons();">
       `;
     }
-    
-    const descriptionHTML = item.description && item.description.trim() !== '' 
-      ? `<p class="card-description">${item.description}</p>`
+
+    const descriptionHTML = item.description && String(item.description).trim() !== ''
+      ? `<p class="card-description">${escapeHTML(item.description)}</p>`
       : '';
-      
+
     card.innerHTML = `
       <div class="card-image-container">
         ${imageHTML}
-        <span class="card-badge">${item.category}</span>
+        <span class="card-badge">${escapeHTML(item.category)}</span>
       </div>
       <div class="card-body">
         <div class="card-header-row">
-          <h2 class="card-title">${item.name}</h2>
+          <h2 class="card-title">${escapeHTML(item.name)}</h2>
           <span class="card-price">${formattedPrice}</span>
         </div>
         ${descriptionHTML}
       </div>
     `;
-    
+
     menuGrid.appendChild(card);
   });
-  
-  lucide.createIcons();
+
+  if (window.lucide) lucide.createIcons();
 }
 
 function showSkeletons() {

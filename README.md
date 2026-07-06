@@ -58,20 +58,22 @@ Para que la API pueda acceder a los datos sin credenciales pesadas de Google Clo
 4. Ve a **Archivo** > **Compartir** > **Publicar en la web**.
 5. Haz clic en **Publicar** y confirma la acción (puedes cerrar la ventana emergente tras esto).
 
-### 3. Obtener el ID de la Hoja
-El ID del documento se encuentra en la URL de tu navegador:
-`https://docs.google.com/spreadsheets/d/`**[ID_DE_TU_HOJA]**`/edit#gid=0`
+### 3. Obtener el ID de publicación de la Hoja
+Al hacer **Archivo > Compartir > Publicar en la web**, Google te da un enlace del tipo:
+`https://docs.google.com/spreadsheets/d/e/`**[ID_PUBLICADO]**`/pubhtml`
 
-Copia ese código alfanumérico largo.
+Copia ese código largo que empieza por `2PACX-`. (Si en su lugar usas el ID normal de la URL del editor, la web utilizará la API gviz como alternativa, pero el modo recomendado es el ID publicado.)
 
 ### 4. Configurar el Archivo `app.js`
-Abre el archivo [app.js](file:///C:/Users/andre/.gemini/antigravity/scratch/bar-menu-web/app.js) en tu editor y busca la siguiente línea en la parte superior:
+Abre `app.js` en tu editor y busca la siguiente línea en la parte superior:
 
 ```javascript
-const DEFAULT_SPREADSHEET_ID = '1Zz98iY8wN_4HhFvSgP-P1o5iS9iQ-L476QeZ6aX11iA'; 
+const DEFAULT_SPREADSHEET_ID = '2PACX-...';
 ```
 
-Reemplaza ese ID de prueba por el **ID de tu hoja** que copiaste en el paso anterior. ¡Guarda el archivo y listo! Tu web ahora se nutre de tus propios datos de Google Sheets.
+Reemplaza ese ID por el **ID publicado de tu hoja** que copiaste en el paso anterior.
+
+**Importante — los `gid` de las pestañas:** en `app.js` las URLs de carta y config llevan un parámetro `gid=` (ej: `gid=1419609544`) que identifica cada pestaña *de esa hoja concreta*. Si usas otra hoja de cálculo, obtén el `gid` de cada pestaña desde la URL del editor (aparece como `#gid=...` al seleccionar la pestaña) y actualiza los dos valores: el de la carta (función `loadData`) y el de la pestaña `Config` (función `loadConfig`).
 
 ---
 
@@ -90,6 +92,18 @@ Para probar el proyecto de forma local:
    npx serve .
    ```
 4. Abre tu navegador y ve a `http://localhost:8000`.
+
+---
+
+## 🧪 Backend Flask alternativo (experimento aparte)
+
+El repo incluye también un pequeño backend en Python que **no usa la web de producción**: `app.py` (API Flask en `/api/carta`), `inicializar_web.py` + `script_menu.sql` (crean la base de datos SQLite `bar.db`) y `templates/index.html` (carta sencilla servida por Flask). Para probarlo:
+
+```bash
+pip install -r requirements.txt
+python inicializar_web.py   # crea/actualiza bar.db (es idempotente, se puede re-ejecutar)
+python app.py               # sirve la carta en http://localhost:5000
+```
 
 ---
 

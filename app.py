@@ -2,7 +2,11 @@ from flask import Flask, jsonify, render_template
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+import os
 import sqlite3
+
+# Ruta absoluta a la base de datos, independiente de desde dónde se arranque el servidor
+RUTA_DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bar.db')
 
 app = Flask(__name__)
 
@@ -18,7 +22,7 @@ limiter = Limiter(
 )
 
 def obtener_datos_carta():
-    conexion = sqlite3.connect('bar.db')
+    conexion = sqlite3.connect(RUTA_DB)
     cursor = conexion.cursor()
     
     cursor.execute('''
@@ -54,5 +58,8 @@ def dar_carta():
     return jsonify(carta_estructurada)
 
 if __name__ == '__main__':
-    # Usamos debug=True para desarrollo local
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # debug desactivado por defecto: el debugger de Werkzeug permite ejecutar código
+    # arbitrario y con host 0.0.0.0 quedaría expuesto a toda la red local.
+    # Para activarlo en desarrollo: FLASK_DEBUG=1 python app.py
+    modo_debug = os.environ.get('FLASK_DEBUG') == '1'
+    app.run(host='127.0.0.1' if modo_debug else '0.0.0.0', port=5000, debug=modo_debug)

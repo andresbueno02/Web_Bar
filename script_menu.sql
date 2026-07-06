@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS categorias (
 -- 2. Crear la tabla de Productos
 CREATE TABLE IF NOT EXISTS productos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nombre TEXT NOT NULL,
+    nombre TEXT NOT NULL UNIQUE, -- UNIQUE para que re-ejecutar el script no duplique productos
     precio REAL NOT NULL, -- Usamos REAL para guardar los precios con decimales (ej: 1.50)
     disponible INTEGER DEFAULT 1, -- 1 para sí, 0 para si os quedáis sin stock temporalmente
     categoria_id INTEGER,
@@ -24,9 +24,9 @@ INSERT OR IGNORE INTO categorias (nombre) VALUES ('Bebidas y Refrescos');
 
 -- 4. Insertar unos productos de ejemplo para probar la base de datos
 -- (Nota: El id 1 es Cafés, el 2 es Cervezas, el 3 es Bebidas)
-INSERT INTO productos (nombre, precio, categoria_id) VALUES ('Café Pequeño', 1.40, 1);
-INSERT INTO productos (nombre, precio, categoria_id) VALUES ('Café 2x', 1.60, 1);
-INSERT INTO productos (nombre, precio, categoria_id) VALUES ('Café con Hielo', 1.70, 1);
-INSERT INTO productos (nombre, precio, categoria_id) VALUES ('Cerveza Caña', 1.80, 2);
-INSERT INTO productos (nombre, precio, categoria_id) VALUES ('Copa Barril', 2.20, 2);
-INSERT INTO productos (nombre, precio, categoria_id) VALUES ('Refresco de Cola', 2.00, 3);
+INSERT OR IGNORE INTO productos (nombre, precio, categoria_id) VALUES ('Café Pequeño', 1.40, 1);
+INSERT OR IGNORE INTO productos (nombre, precio, categoria_id) VALUES ('Café 2x', 1.60, 1);
+INSERT OR IGNORE INTO productos (nombre, precio, categoria_id) VALUES ('Café con Hielo', 1.70, 1);
+INSERT OR IGNORE INTO productos (nombre, precio, categoria_id) VALUES ('Cerveza Caña', 1.80, 2);
+INSERT OR IGNORE INTO productos (nombre, precio, categoria_id) VALUES ('Copa Barril', 2.20, 2);
+INSERT OR IGNORE INTO productos (nombre, precio, categoria_id) VALUES ('Refresco de Cola', 2.00, 3);

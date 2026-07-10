@@ -228,6 +228,57 @@
       <i data-lucide="arrow-up"></i>
     </button>
 
+    <!-- Botón flotante del carrito -->
+    <button class="btn-cart" id="btn-cart" aria-label="Ver carrito de pedido">
+      <i data-lucide="shopping-cart"></i>
+      <span class="cart-count" id="cart-count">0</span>
+    </button>
+
+    <!-- Carrito / Pedido -->
+    <div class="cart-overlay hidden" id="cart-overlay"></div>
+    <aside class="cart-drawer hidden" id="cart-drawer" aria-hidden="true">
+      <div class="cart-drawer-header">
+        <h2><i data-lucide="shopping-cart"></i> Tu pedido</h2>
+        <button class="btn-close-cart" id="btn-close-cart" aria-label="Cerrar carrito">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div class="cart-mesa-row">
+        <label for="mesa-input">Mesa <span class="required">*</span></label>
+        <input type="text" id="mesa-input" placeholder="Nº de mesa o 'Barra'">
+      </div>
+
+      <div class="cart-items" id="cart-items">
+        <p class="cart-empty" id="cart-empty">Tu carrito está vacío.</p>
+      </div>
+
+      <div class="cart-notes-row">
+        <label for="cart-notes">Notas (opcional)</label>
+        <textarea id="cart-notes" placeholder="Ej: sin hielo, alergia a frutos secos..."></textarea>
+      </div>
+
+      <p class="cart-total-row" id="cart-total-row"></p>
+
+      <button class="btn btn-primary btn-submit-order" id="btn-submit-order">
+        <i data-lucide="send"></i>
+        <span>Enviar pedido</span>
+      </button>
+
+      <p class="cart-feedback" id="cart-feedback"></p>
+    </aside>
+
+    <!-- Modal genérico de selección de opción (ej. elegir refresco) -->
+    <div class="option-overlay hidden" id="option-overlay"></div>
+    <div class="option-modal hidden" id="option-modal" role="dialog" aria-modal="true" aria-labelledby="option-modal-title">
+      <h3 id="option-modal-title">Elige tu opción</h3>
+      <select id="option-modal-select" class="option-modal-select"></select>
+      <div class="option-modal-actions">
+        <button class="btn btn-secondary" id="option-modal-cancel">Cancelar</button>
+        <button class="btn btn-primary" id="option-modal-confirm">Añadir</button>
+      </div>
+    </div>
+
     <!-- Footer -->
     <footer class="main-footer">
       <p>&copy; 2026 Atlantida Cafe. Todos los derechos reservados.</p>

@@ -20,6 +20,8 @@ let savedCategory = 'all';
 // URL del Web App de Google Apps Script que recibe el pedido y lo publica en el grupo de Telegram.
 // Reemplaza este valor por la URL de despliegue de tu propio Apps Script.
 const ORDERS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxKaLgBCakT02IikBb-sh6ZDzjiiVyijI3JOQ0kPOwZ1sEADUYvrDySGpns16PTK0ZL/exec';
+// Mismo límite que MAX_CANTIDAD en Code.gs, para no permitir en la UI algo que el backend rechazaría.
+const MAX_CANTIDAD_LINEA = 20;
 
 let cart = []; // { key, name, price, quantity, opcion }
 let pendingOptionItem = null; // producto en espera de elegir opción en el modal
@@ -255,7 +257,11 @@ function setupEventListeners() {
     if (btn.classList.contains('btn-remove-line')) {
       cart.splice(idx, 1);
     } else if (btn.dataset.action === 'inc') {
-      cart[idx].quantity += 1;
+      // Mismo tope que MAX_CANTIDAD en Code.gs: evita que un pedido válido en
+      // la UI sea rechazado en silencio por el backend (ver submitOrder).
+      if (cart[idx].quantity < MAX_CANTIDAD_LINEA) {
+        cart[idx].quantity += 1;
+      }
     } else if (btn.dataset.action === 'dec') {
       cart[idx].quantity -= 1;
       if (cart[idx].quantity <= 0) cart.splice(idx, 1);
@@ -824,6 +830,13 @@ async function submitOrder() {
       body: JSON.stringify(payload)
     });
     if (!response.ok) throw new Error('HTTP ' + response.status);
+
+    // Apps Script siempre responde HTTP 200 aunque el pedido se rechace
+    // internamente (ej. validación fallida), así que hay que comprobar
+    // el campo "ok" del cuerpo — si no, un pedido rechazado se mostraría
+    // como enviado con éxito sin que llegue nada a Telegram.
+    const data = await response.json();
+    if (!data.ok) throw new Error(data.error || 'El backend rechazó el pedido.');
 
     const mesaConfirmada = mesa;
     cart = [];

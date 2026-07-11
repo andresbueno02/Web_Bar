@@ -2,7 +2,8 @@
  * Backend de pedidos de Atlantida Cafe.
  *
  * Recibe el pedido hecho desde la web (POST con JSON) y lo publica
- * automáticamente en el grupo de Telegram del bar.
+ * automáticamente en el grupo de Telegram del bar. La misma URL también
+ * recibe los toques del botón "Marcar como hecho" (webhook del bot).
  *
  * DESPLIEGUE:
  * 1. Crea un proyecto nuevo en https://script.google.com y pega este archivo como Code.gs.
@@ -13,6 +14,9 @@
  *      Ejecutar como: Yo
  *      Quién tiene acceso: Cualquier usuario
  * 4. Copia la URL de la implementación y ponla en ORDERS_ENDPOINT dentro de app.js (Web_Bar).
+ * 5. Registra esa misma URL como webhook del bot (una sola vez), visitando en el navegador:
+ *      https://api.telegram.org/bot<TOKEN>/setWebhook?url=<URL_DEL_WEB_APP>
+ *    Esto hace que Telegram reenvíe aquí los toques del botón "Marcar como hecho".
  *
  * El token y el chat id NUNCA se escriben aquí en texto plano ni en el código de la web:
  * viven solo en las Propiedades del script, fuera del control de versiones.
@@ -25,6 +29,14 @@ const MAX_NOTAS_LENGTH = 300;
 function doPost(e) {
   try {
     const payload = JSON.parse(e.postData.contents);
+
+    // Los toques de botón que llegan vía webhook de Telegram traen "callback_query";
+    // los pedidos que manda la web nunca tienen esa clave.
+    if (payload && payload.callback_query) {
+      handleCallbackQuery(payload);
+      return jsonResponse({ ok: true });
+    }
+
     const pedido = validarPedido(payload);
     enviarATelegram(formatearMensaje(pedido));
     return jsonResponse({ ok: true });
@@ -77,23 +89,64 @@ function formatearMensaje(pedido) {
 }
 
 function enviarATelegram(texto) {
-  const props = PropertiesService.getScriptProperties();
-  const token = props.getProperty('BOT_TOKEN');
-  const chatId = props.getProperty('CHAT_ID');
-  if (!token || !chatId) throw new Error('Faltan BOT_TOKEN o CHAT_ID en las propiedades del script.');
+  const chatId = getScriptProperty_('CHAT_ID');
 
-  const url = 'https://api.telegram.org/bot' + token + '/sendMessage';
+  const reply_markup = {
+    inline_keyboard: [[{ text: '✅ Marcar como hecho', callback_data: 'done' }]]
+  };
+
+  llamarTelegram_('sendMessage', {
+    chat_id: chatId,
+    text: texto,
+    reply_markup: reply_markup
+  });
+}
+
+// Se ejecuta cuando alguien del equipo pulsa "✅ Marcar como hecho" en el grupo.
+// El mensaje original NUNCA se borra ni se reemplaza: solo se le antepone el
+// prefijo "✅ COMPLETADO" y se quita el botón, para poder seguir leyendo y
+// apuntando el pedido completo (mesa, productos, notas) después de marcarlo.
+function handleCallbackQuery(update) {
+  const callback = update.callback_query;
+  const chatId = callback.message.chat.id;
+  const messageId = callback.message.message_id;
+  const textoOriginal = callback.message.text || '';
+
+  if (textoOriginal.indexOf('✅ COMPLETADO') !== 0) {
+    llamarTelegram_('editMessageText', {
+      chat_id: chatId,
+      message_id: messageId,
+      text: '✅ COMPLETADO\n\n' + textoOriginal,
+      reply_markup: { inline_keyboard: [] }
+    });
+  }
+
+  // Obligatorio: si no se llama, el móvil de quien pulsó se queda con el
+  // icono de "cargando" en el botón indefinidamente.
+  llamarTelegram_('answerCallbackQuery', { callback_query_id: callback.id });
+}
+
+function getScriptProperty_(name) {
+  const value = PropertiesService.getScriptProperties().getProperty(name);
+  if (!value) throw new Error('Falta la propiedad del script "' + name + '".');
+  return value;
+}
+
+function llamarTelegram_(metodo, body) {
+  const token = getScriptProperty_('BOT_TOKEN');
+  const url = 'https://api.telegram.org/bot' + token + '/' + metodo;
   const response = UrlFetchApp.fetch(url, {
     method: 'post',
     contentType: 'application/json',
-    payload: JSON.stringify({ chat_id: chatId, text: texto }),
+    payload: JSON.stringify(body),
     muteHttpExceptions: true
   });
 
   const status = response.getResponseCode();
   if (status < 200 || status >= 300) {
-    throw new Error('Telegram respondió ' + status + ': ' + response.getContentText());
+    throw new Error('Telegram (' + metodo + ') respondió ' + status + ': ' + response.getContentText());
   }
+  return response;
 }
 
 function jsonResponse(obj) {

@@ -1146,14 +1146,14 @@ body {
 }
 
 .btn-qty {
-  width: 26px;
-  height: 26px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1px solid var(--border-color);
   background: transparent;
   color: var(--text-main);
   cursor: pointer;
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   line-height: 1;
   display: flex;
   align-items: center;
@@ -1177,7 +1177,11 @@ body {
   color: var(--text-dark);
   cursor: pointer;
   display: flex;
-  padding: 0.2rem;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
 }
 
 .btn-remove-line:hover {
@@ -1212,6 +1216,32 @@ body {
 
 .cart-feedback.error {
   color: var(--error);
+}
+
+.cart-pending-banner {
+  background: color-mix(in srgb, var(--error) 12%, transparent);
+  border: 1px solid var(--error);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-main);
+}
+
+.cart-pending-banner p {
+  margin: 0.35rem 0 0;
+}
+
+.cart-pending-banner .btn-dismiss-pending {
+  margin-top: 0.6rem;
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--error);
+  background: transparent;
+  color: var(--error);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
 }
 
 /* ----------------------------------------------------

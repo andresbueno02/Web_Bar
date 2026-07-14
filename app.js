@@ -1,5 +1,5 @@
 /**
- * L'Aura - Bar & Coctelería Minimalista
+ * Atlantida Cafe - Carta digital y pedidos por QR
  * Google Sheets API Integration & Dynamic Rendering
  */
 
@@ -20,8 +20,16 @@ let savedCategory = 'all';
 // URL del Web App de Google Apps Script que recibe el pedido y lo publica en el grupo de Telegram.
 // Reemplaza este valor por la URL de despliegue de tu propio Apps Script.
 const ORDERS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxKaLgBCakT02IikBb-sh6ZDzjiiVyijI3JOQ0kPOwZ1sEADUYvrDySGpns16PTK0ZL/exec';
+// Token compartido para que Code.gs rechace peticiones que no vengan de esta web.
+// Debe coincidir exactamente con la propiedad de script ORDERS_TOKEN en Apps Script.
+const ORDERS_TOKEN = 'RhdeBnfjnCcsAa7KGCu-Gku1lnjvfD0P';
 // Mismo límite que MAX_CANTIDAD en Code.gs, para no permitir en la UI algo que el backend rechazaría.
 const MAX_CANTIDAD_LINEA = 20;
+// Tiempo máximo de espera para peticiones de red antes de darlas por fallidas.
+const FETCH_TIMEOUT_MS = 15000;
+// Claves de localStorage para persistir el carrito en curso y un pedido que falló al enviarse.
+const CART_STORAGE_KEY = 'wb_cart';
+const PEDIDO_PENDIENTE_KEY = 'wb_pedido_pendiente';
 
 let cart = []; // { key, name, price, quantity, opcion }
 let pendingOptionItem = null; // producto en espera de elegir opción en el modal
@@ -141,6 +149,7 @@ const cartNotesEl = document.getElementById('cart-notes');
 const mesaInput = document.getElementById('mesa-input');
 const btnSubmitOrder = document.getElementById('btn-submit-order');
 const cartFeedback = document.getElementById('cart-feedback');
+const cartPendingBanner = document.getElementById('cart-pending-banner');
 
 // Modal de opciones DOM Elements
 const optionOverlay = document.getElementById('option-overlay');
@@ -171,6 +180,86 @@ function guardarCache(clave, data) {
   }
 }
 
+// fetch() con timeout: evita que un botón se quede "Enviando..." indefinidamente
+// si la red está saturada (ej. wifi del bar con mucho tráfico un día de partido).
+function fetchConTimeout(url, options, timeoutMs) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timeoutId));
+}
+
+// --- CARRITO: PERSISTENCIA LOCAL ---
+// Guarda el carrito en curso para no perderlo si el cliente recarga la página por error.
+function guardarCarrito() {
+  try {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+  } catch (e) {
+    // Sin almacenamiento disponible: el carrito seguirá funcionando solo en memoria
+  }
+}
+
+function restaurarCarrito() {
+  try {
+    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) cart = parsed;
+  } catch (e) {
+    // Ignorar carrito guardado corrupto
+  }
+}
+
+// --- PEDIDO PENDIENTE (aviso persistente si el envío falla) ---
+function guardarPedidoPendiente(payload) {
+  try {
+    localStorage.setItem(PEDIDO_PENDIENTE_KEY, JSON.stringify({
+      mesa: payload.mesa,
+      items: payload.items,
+      notas: payload.notas,
+      hora: new Date().toLocaleTimeString()
+    }));
+  } catch (e) {
+    // No se pudo guardar; igualmente se muestra el aviso en pantalla
+  }
+  mostrarAvisoPedidoPendiente();
+}
+
+function limpiarPedidoPendiente() {
+  try {
+    localStorage.removeItem(PEDIDO_PENDIENTE_KEY);
+  } catch (e) {}
+  if (cartPendingBanner) cartPendingBanner.classList.add('hidden');
+}
+
+function mostrarAvisoPedidoPendiente() {
+  if (!cartPendingBanner) return;
+  let detalle = null;
+  try {
+    const raw = localStorage.getItem(PEDIDO_PENDIENTE_KEY);
+    if (raw) detalle = JSON.parse(raw);
+  } catch (e) {}
+
+  if (!detalle) {
+    cartPendingBanner.classList.add('hidden');
+    return;
+  }
+
+  const lineas = detalle.items.map(i =>
+    `${i.cantidad}x ${i.producto}${i.opcion ? ' (con ' + i.opcion + ')' : ''}`
+  ).join(', ');
+
+  cartPendingBanner.innerHTML = `
+    <strong>⚠️ Pedido no confirmado (${escapeHTML(detalle.hora)})</strong>
+    <p>Mesa ${escapeHTML(detalle.mesa)}: ${escapeHTML(lineas)}${detalle.notas ? ' — Notas: ' + escapeHTML(detalle.notas) : ''}</p>
+    <p>No se pudo enviar por la web. Enséñale esto a un camarero.</p>
+    <button type="button" class="btn-dismiss-pending" id="btn-dismiss-pending">Ya avisé, descartar aviso</button>
+  `;
+  cartPendingBanner.classList.remove('hidden');
+
+  const btnDismiss = document.getElementById('btn-dismiss-pending');
+  if (btnDismiss) btnDismiss.addEventListener('click', limpiarPedidoPendiente);
+}
+
 // --- INIT APP ---
 document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
@@ -178,6 +267,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initStatusWidget(); // Inicializa el widget de abierto/cerrado
   setInterval(initStatusWidget, 60000); // Refresca abierto/cerrado sin recargar la página
   initMesa();
+  restaurarCarrito();
+  renderCart();
+  mostrarAvisoPedidoPendiente();
   loadData();
   loadConfig(); // Inicia la carga de la configuración de enlaces
 });
@@ -325,9 +417,9 @@ async function loadData() {
   debugApiUrl.href = apiUrl;
   
   try {
-    const response = await fetch(apiUrl);
+    const response = await fetchConTimeout(apiUrl, {}, FETCH_TIMEOUT_MS);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    
+
     const textText = await response.text();
     let parsedData = null;
     
@@ -748,6 +840,7 @@ function addToCart(item, opcion) {
 }
 
 function renderCart() {
+  guardarCarrito();
   const count = cart.reduce((sum, l) => sum + l.quantity, 0);
   cartCountEl.textContent = count;
   btnCart.classList.toggle('has-items', count > 0);
@@ -815,44 +908,63 @@ async function submitOrder() {
   const payload = {
     mesa: mesa,
     items: cart.map(l => ({ producto: l.name, cantidad: l.quantity, opcion: l.opcion || '' })),
-    notas: cartNotesEl.value.trim()
+    notas: cartNotesEl.value.trim(),
+    token: ORDERS_TOKEN
   };
 
   btnSubmitOrder.disabled = true;
   btnSubmitOrder.innerHTML = '<span>Enviando...</span>';
 
-  try {
-    // Content-Type text/plain evita el preflight CORS que Apps Script no maneja bien;
-    // el backend igualmente lee el JSON desde el cuerpo de la petición.
-    const response = await fetch(ORDERS_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
-    });
-    if (!response.ok) throw new Error('HTTP ' + response.status);
+  // Hasta 2 intentos: si el primero falla por red/timeout/cuota, se reintenta una vez
+  // antes de dar el pedido por perdido (crítico en un día de mucho tráfico simultáneo).
+  const MAX_INTENTOS = 2;
+  let ultimoError = null;
+  let enviado = false;
 
-    // Apps Script siempre responde HTTP 200 aunque el pedido se rechace
-    // internamente (ej. validación fallida), así que hay que comprobar
-    // el campo "ok" del cuerpo — si no, un pedido rechazado se mostraría
-    // como enviado con éxito sin que llegue nada a Telegram.
-    const data = await response.json();
-    if (!data.ok) throw new Error(data.error || 'El backend rechazó el pedido.');
+  for (let intento = 1; intento <= MAX_INTENTOS && !enviado; intento++) {
+    try {
+      // Content-Type text/plain evita el preflight CORS que Apps Script no maneja bien;
+      // el backend igualmente lee el JSON desde el cuerpo de la petición.
+      const response = await fetchConTimeout(ORDERS_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      }, FETCH_TIMEOUT_MS);
+      if (!response.ok) throw new Error('HTTP ' + response.status);
 
+      // Apps Script siempre responde HTTP 200 aunque el pedido se rechace
+      // internamente (ej. validación fallida), así que hay que comprobar
+      // el campo "ok" del cuerpo — si no, un pedido rechazado se mostraría
+      // como enviado con éxito sin que llegue nada a Telegram.
+      const data = await response.json();
+      if (!data.ok) throw new Error(data.error || 'El backend rechazó el pedido.');
+      enviado = true;
+    } catch (err) {
+      ultimoError = err;
+      if (intento < MAX_INTENTOS) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+    }
+  }
+
+  if (enviado) {
     const mesaConfirmada = mesa;
     cart = [];
     cartNotesEl.value = '';
     renderCart();
+    limpiarPedidoPendiente();
     cartFeedback.textContent = `Pedido enviado — Mesa ${mesaConfirmada}. ¡Gracias!`;
     cartFeedback.classList.add('success');
-  } catch (err) {
-    console.error('Error al enviar el pedido:', err);
-    cartFeedback.textContent = 'No se pudo enviar el pedido. Comprueba tu conexión e inténtalo de nuevo, o avisa a un camarero.';
+  } else {
+    console.error('Error al enviar el pedido tras reintento:', ultimoError);
+    guardarPedidoPendiente(payload);
+    cartFeedback.textContent = 'No se pudo enviar el pedido tras varios intentos. Avisa a un camarero — hemos guardado el detalle arriba.';
     cartFeedback.classList.add('error');
-  } finally {
-    btnSubmitOrder.disabled = false;
-    btnSubmitOrder.innerHTML = '<i data-lucide="send"></i><span>Enviar pedido</span>';
-    if (window.lucide) lucide.createIcons();
   }
+
+  btnSubmitOrder.disabled = false;
+  btnSubmitOrder.innerHTML = '<i data-lucide="send"></i><span>Enviar pedido</span>';
+  if (window.lucide) lucide.createIcons();
 }
 
 // --- UTILS & PIPELINE VISUALIZATIONS ---
@@ -944,7 +1056,7 @@ async function loadConfig() {
     : `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=Config`;
 
   try {
-    const response = await fetch(configUrl);
+    const response = await fetchConTimeout(configUrl, {}, FETCH_TIMEOUT_MS);
     if (!response.ok) throw new Error("No config sheet");
     const text = await response.text();
 

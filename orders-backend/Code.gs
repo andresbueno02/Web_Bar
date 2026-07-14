@@ -8,8 +8,10 @@
  * DESPLIEGUE:
  * 1. Crea un proyecto nuevo en https://script.google.com y pega este archivo como Code.gs.
  * 2. Menú "Configuración del proyecto" > "Propiedades del script" > añade:
- *      BOT_TOKEN = token que te da @BotFather al crear el bot
- *      CHAT_ID   = id del grupo de Telegram donde debe publicar (el bot debe estar añadido al grupo)
+ *      BOT_TOKEN     = token que te da @BotFather al crear el bot
+ *      CHAT_ID       = id del grupo de Telegram donde debe publicar (el bot debe estar añadido al grupo)
+ *      ORDERS_TOKEN  = el mismo valor que ORDERS_TOKEN en app.js (Web_Bar), para que este
+ *                      script rechace cualquier pedido que no venga de la web oficial.
  * 3. Implementar > Nueva implementación > Aplicación web:
  *      Ejecutar como: Yo
  *      Quién tiene acceso: Cualquier usuario
@@ -48,6 +50,13 @@ function doPost(e) {
 // Valida y normaliza el payload recibido. Lanza un error descriptivo si algo no cuadra,
 // para no publicar nunca en Telegram un pedido corrupto o potencialmente abusivo.
 function validarPedido(payload) {
+  // Solo acepta pedidos que traigan el token compartido con app.js: evita que alguien
+  // copie la URL pública del endpoint (visible en el JS del navegador) y la use para
+  // floodear el grupo de Telegram del bar sin pasar por la web.
+  const tokenEsperado = getScriptProperty_('ORDERS_TOKEN');
+  const tokenRecibido = String(payload && payload.token || '');
+  if (tokenRecibido !== tokenEsperado) throw new Error('No autorizado.');
+
   const mesa = String(payload && payload.mesa || '').trim();
   if (!mesa) throw new Error('Falta el número de mesa.');
   if (mesa.length > 40) throw new Error('Mesa inválida.');
@@ -152,4 +161,10 @@ function llamarTelegram_(metodo, body) {
 function jsonResponse(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// Comprobación rápida de que la implementación en vivo está actualizada
+// (visitar la URL del Web App directamente en el navegador hace GET, no POST).
+function doGet(e) {
+  return ContentService.createTextOutput('VERSION-CON-BOTON-OK - ' + new Date());
 }

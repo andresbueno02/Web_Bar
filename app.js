@@ -33,6 +33,14 @@ const PEDIDO_PENDIENTE_KEY = 'wb_pedido_pendiente';
 
 let cart = []; // { key, name, price, quantity, opcion }
 let pendingOptionItem = null; // producto en espera de elegir opción en el modal
+let optionModalMode = 'select'; // 'select' (refrescos) | 'coffee' (personalización de café)
+
+const COFFEE_EXCLUDED_PRODUCTS = new Set([
+  'cafe bombon',
+  'colacao',
+  'descafeinado de sobre'
+]);
+const COFFEE_TYPES_REGEX = /^(Solo|Cortado|Mitad|Sombra|Nube|Manchado)(?:,|$)/;
 
 // --- CONFIGURATION LINKS (FALLBACK & SHEET DB) ---
 // Estos enlaces se usarán por defecto si no se encuentra la pestaña "Config" en el Google Sheet
@@ -156,6 +164,11 @@ const optionOverlay = document.getElementById('option-overlay');
 const optionModal = document.getElementById('option-modal');
 const optionModalTitle = document.getElementById('option-modal-title');
 const optionModalSelect = document.getElementById('option-modal-select');
+const coffeeOptionsEl = document.getElementById('coffee-options');
+const coffeeDecafEl = document.getElementById('coffee-decaf');
+const coffeeSweetenerEl = document.getElementById('coffee-sweetener');
+const coffeeTypeEl = document.getElementById('coffee-type');
+const optionModalError = document.getElementById('option-modal-error');
 const optionModalCancel = document.getElementById('option-modal-cancel');
 const optionModalConfirm = document.getElementById('option-modal-confirm');
 
@@ -364,15 +377,46 @@ function setupEventListeners() {
   // Carrito: enviar pedido
   btnSubmitOrder.addEventListener('click', submitOrder);
 
-  // Modal de opción (ej. elegir refresco)
+  // Modal de opción (ej. elegir refresco o personalizar café)
   optionModalConfirm.addEventListener('click', () => {
-    if (pendingOptionItem) {
+    if (!pendingOptionItem) {
+      closeOptionModal();
+      return;
+    }
+
+    if (optionModalMode === 'coffee') {
+      const coffeeType = coffeeTypeEl.value;
+      if (!coffeeType) {
+        optionModalError.textContent = 'Elige qué tipo de café quieres.';
+        optionModalError.classList.remove('hidden');
+        coffeeTypeEl.focus();
+        return;
+      }
+      const parts = [coffeeType];
+      if (coffeeDecafEl.checked) parts.push('Descafeinado');
+      parts.push(coffeeSweetenerEl.value);
+      addToCart(pendingOptionItem, parts.join(', '));
+    } else {
       addToCart(pendingOptionItem, optionModalSelect.value);
     }
+
     closeOptionModal();
   });
+
+  coffeeTypeEl.addEventListener('change', () => {
+    if (coffeeTypeEl.value) {
+      optionModalError.classList.add('hidden');
+      optionModalError.textContent = '';
+    }
+  });
+
   optionModalCancel.addEventListener('click', closeOptionModal);
   optionOverlay.addEventListener('click', closeOptionModal);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !optionModal.classList.contains('hidden')) {
+      closeOptionModal();
+    }
+  });
 }
 
 function checkDebugMode() {
@@ -796,9 +840,43 @@ function showSkeletons() {
 
 // --- CARRITO Y PEDIDOS ---
 
-// Si el producto es "Personalizable", abre el modal para elegir la opción
-// (el pool de opciones sale de otra categoría ya existente en la carta, ej. "Refrescos").
+function normalizeText(str) {
+  return String(str ?? '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function isCoffeeCustomizable(item) {
+  const normCustom = normalizeText(item.customizable);
+  if (normCustom === 'cafe' || normCustom === 'cafes') return true;
+  const normCat = normalizeText(item.category);
+  if (normCat === 'cafes' || normCat === 'cafe') {
+    return !COFFEE_EXCLUDED_PRODUCTS.has(normalizeText(item.name));
+  }
+  return false;
+}
+
+// Si el producto es un café personalizable o tiene columna "Personalizable",
+// abre el modal correspondiente antes de añadirlo al carrito.
 function handleAddClick(item) {
+  if (isCoffeeCustomizable(item)) {
+    pendingOptionItem = item;
+    optionModalMode = 'coffee';
+    optionModalTitle.textContent = `${item.name} — personaliza tu café`;
+    optionModalSelect.classList.add('hidden');
+    coffeeOptionsEl.classList.remove('hidden');
+    coffeeDecafEl.checked = false;
+    coffeeSweetenerEl.value = 'Sin azúcar';
+    coffeeTypeEl.value = '';
+    optionModalError.textContent = '';
+    optionModalError.classList.add('hidden');
+    optionOverlay.classList.remove('hidden');
+    optionModal.classList.remove('hidden');
+    return;
+  }
+
   if (item.customizable) {
     const pool = menuData.filter(p => p.category === item.customizable && p.available !== false);
     if (pool.length === 0) {
@@ -806,7 +884,10 @@ function handleAddClick(item) {
       return;
     }
     pendingOptionItem = item;
+    optionModalMode = 'select';
     optionModalTitle.textContent = `${item.name} — elige tu opción`;
+    coffeeOptionsEl.classList.add('hidden');
+    optionModalSelect.classList.remove('hidden');
     const sinRefrescoOption = `<option value="">Sin refresco (solo o con hielo)</option>`;
     optionModalSelect.innerHTML = sinRefrescoOption + pool.map(p => `<option value="${escapeHTML(p.name)}">${escapeHTML(p.name)}</option>`).join('');
     optionOverlay.classList.remove('hidden');
@@ -826,6 +907,7 @@ function addToCart(item, opcion) {
   const key = item.name + '|' + (opcion || '');
   const existing = cart.find(line => line.key === key);
   if (existing) {
+    if (existing.quantity >= MAX_CANTIDAD_LINEA) return;
     existing.quantity += 1;
   } else {
     cart.push({
@@ -851,11 +933,15 @@ function renderCart() {
     return;
   }
 
-  cartItemsEl.innerHTML = cart.map((line, idx) => `
+  cartItemsEl.innerHTML = cart.map((line, idx) => {
+    const opcionLabel = line.opcion
+      ? (COFFEE_TYPES_REGEX.test(line.opcion) ? line.opcion : `con ${line.opcion}`)
+      : '';
+    return `
     <div class="cart-line">
       <div class="cart-line-info">
         <span class="cart-line-name">${escapeHTML(line.name)}</span>
-        ${line.opcion ? `<span class="cart-line-option">con ${escapeHTML(line.opcion)}</span>` : ''}
+        ${opcionLabel ? `<span class="cart-line-option">${escapeHTML(opcionLabel)}</span>` : ''}
       </div>
       <div class="cart-line-controls">
         <button class="btn-qty" data-idx="${idx}" data-action="dec" aria-label="Quitar una unidad">-</button>
@@ -864,7 +950,8 @@ function renderCart() {
         <button class="btn-remove-line" data-idx="${idx}" aria-label="Quitar producto"><i data-lucide="x"></i></button>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 
   const total = cart.reduce((sum, l) => sum + (l.price * l.quantity), 0);
   cartTotalRow.textContent = `Total aprox: ${total.toFixed(2)}€`;

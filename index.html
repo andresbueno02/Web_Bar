@@ -270,11 +270,44 @@
       <p class="cart-feedback" id="cart-feedback"></p>
     </aside>
 
-    <!-- Modal genérico de selección de opción (ej. elegir refresco) -->
+    <!-- Modal genérico de selección de opción (ej. elegir refresco o personalizar café) -->
     <div class="option-overlay hidden" id="option-overlay"></div>
     <div class="option-modal hidden" id="option-modal" role="dialog" aria-modal="true" aria-labelledby="option-modal-title">
       <h3 id="option-modal-title">Elige tu opción</h3>
       <select id="option-modal-select" class="option-modal-select"></select>
+
+      <div id="coffee-options" class="coffee-options hidden">
+        <label class="coffee-checkbox-row" for="coffee-decaf">
+          <input type="checkbox" id="coffee-decaf">
+          <span>Descafeinado</span>
+        </label>
+
+        <div class="coffee-field">
+          <label class="coffee-field-label" for="coffee-sweetener">Azúcar / Edulcorante</label>
+          <select id="coffee-sweetener" class="option-modal-select">
+            <option value="Sin azúcar">Sin azúcar</option>
+            <option value="Azúcar">Azúcar</option>
+            <option value="Sacarina">Sacarina</option>
+            <option value="Azúcar moreno">Azúcar moreno</option>
+          </select>
+        </div>
+
+        <div class="coffee-field">
+          <label class="coffee-field-label" for="coffee-type">Tipo de café</label>
+          <select id="coffee-type" class="option-modal-select">
+            <option value="">Elige tipo de café...</option>
+            <option value="Solo">Solo</option>
+            <option value="Cortado">Cortado</option>
+            <option value="Mitad">Mitad</option>
+            <option value="Sombra">Sombra</option>
+            <option value="Nube">Nube</option>
+            <option value="Manchado">Manchado</option>
+          </select>
+        </div>
+
+        <p class="option-modal-error hidden" id="option-modal-error"></p>
+      </div>
+
       <div class="option-modal-actions">
         <button class="btn btn-secondary" id="option-modal-cancel">Cancelar</button>
         <button class="btn btn-primary" id="option-modal-confirm">Añadir</button>

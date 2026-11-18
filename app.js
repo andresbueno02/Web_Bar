@@ -258,7 +258,7 @@ function mostrarAvisoPedidoPendiente() {
   }
 
   const lineas = detalle.items.map(i =>
-    `${i.cantidad}x ${i.producto}${i.opcion ? ' (con ' + i.opcion + ')' : ''}`
+    `${i.cantidad}x ${i.producto}${i.opcion ? ' (' + i.opcion + ')' : ''}`
   ).join(', ');
 
   cartPendingBanner.innerHTML = `

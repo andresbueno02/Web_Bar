@@ -86,7 +86,7 @@ function validarPedido(payload) {
 
 function formatearMensaje(pedido) {
   const lineas = pedido.items.map(function (item) {
-    const opcionTxt = item.opcion ? ' (con ' + item.opcion + ')' : '';
+    const opcionTxt = item.opcion ? ' (' + item.opcion + ')' : '';
     return '• ' + item.cantidad + 'x ' + item.producto + opcionTxt;
   });
 

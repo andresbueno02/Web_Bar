@@ -56,6 +56,13 @@ Crea una pestaña llamada exactamente `Config`. Esta hoja debe tener dos columna
 | `horario_viernes` | `16:00-02:00` |
 | `horario_domingo` | `cerrado` |
 
+**Bloquear pedidos desde mesa / modo solo barra (opcional):** para noches de mucho tránsito (Nochebuena, Nochevieja, etc.) puedes ocultar el carrito y los botones de pedir manteniendo la carta visible:
+
+| Clave | Valor |
+|---|---|
+| `pedidos_activos` | `FALSE` (o `TRUE` / borrar la fila para reactivar) |
+| `mensaje_solo_barra` | *(Opcional)* Texto del aviso. Por defecto: `Hoy solo servicio en barra` |
+
 *Nota: Si no creas la pestaña `Config`, la web funcionará perfectamente utilizando los enlaces y horarios por defecto configurados en el archivo `app.js`.*
 
 ### 2. Compartir y Publicar la Hoja

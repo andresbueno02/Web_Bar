@@ -30,6 +30,10 @@ const FETCH_TIMEOUT_MS = 15000;
 // Claves de localStorage para persistir el carrito en curso y un pedido que falló al enviarse.
 const CART_STORAGE_KEY = 'wb_cart';
 const PEDIDO_PENDIENTE_KEY = 'wb_pedido_pendiente';
+const DEFAULT_ORDERS_DISABLED_MSG = 'Hoy solo servicio en barra';
+
+let ordersEnabled = true;
+let ordersDisabledMessage = DEFAULT_ORDERS_DISABLED_MSG;
 
 let cart = []; // { key, name, price, quantity, opcion }
 let pendingOptionItem = null; // producto en espera de elegir opción en el modal
@@ -146,6 +150,8 @@ const debugLastSync = document.getElementById('debug-last-sync');
 const debugRowsCount = document.getElementById('debug-rows-count');
 
 // Carrito / Pedido DOM Elements
+const ordersDisabledBanner = document.getElementById('orders-disabled-banner');
+const ordersDisabledText = document.getElementById('orders-disabled-text');
 const btnCart = document.getElementById('btn-cart');
 const cartCountEl = document.getElementById('cart-count');
 const cartOverlay = document.getElementById('cart-overlay');
@@ -793,9 +799,12 @@ function renderMenu() {
       ? `<p class="card-description">${escapeHTML(item.description)}</p>`
       : '';
 
-    const footerHTML = isAvailable
-      ? `<button class="btn-add-cart" type="button"><i data-lucide="plus"></i><span>Añadir</span></button>`
-      : `<span class="badge-agotado">Agotado</span>`;
+    let footerHTML = '';
+    if (!isAvailable) {
+      footerHTML = `<div class="card-footer"><span class="badge-agotado">Agotado</span></div>`;
+    } else if (ordersEnabled) {
+      footerHTML = `<div class="card-footer"><button class="btn-add-cart" type="button"><i data-lucide="plus"></i><span>Añadir</span></button></div>`;
+    }
 
     card.innerHTML = `
       <div class="card-image-container">
@@ -808,11 +817,11 @@ function renderMenu() {
           <span class="card-price">${formattedPrice}</span>
         </div>
         ${descriptionHTML}
-        <div class="card-footer">${footerHTML}</div>
+        ${footerHTML}
       </div>
     `;
 
-    if (isAvailable) {
+    if (isAvailable && ordersEnabled) {
       card.querySelector('.btn-add-cart').addEventListener('click', () => handleAddClick(item));
     }
 
@@ -861,6 +870,8 @@ function isCoffeeCustomizable(item) {
 // Si el producto es un café personalizable o tiene columna "Personalizable",
 // abre el modal correspondiente antes de añadirlo al carrito.
 function handleAddClick(item) {
+  if (!ordersEnabled) return;
+
   if (isCoffeeCustomizable(item)) {
     pendingOptionItem = item;
     optionModalMode = 'coffee';
@@ -960,6 +971,7 @@ function renderCart() {
 }
 
 function openCartDrawer() {
+  if (!ordersEnabled) return;
   cartOverlay.classList.remove('hidden');
   cartDrawer.classList.remove('hidden');
   cartDrawer.classList.add('open');
@@ -976,6 +988,12 @@ function closeCartDrawer() {
 }
 
 async function submitOrder() {
+  if (!ordersEnabled) {
+    cartFeedback.textContent = ordersDisabledMessage;
+    cartFeedback.className = 'cart-feedback error';
+    return;
+  }
+
   const mesa = mesaInput.value.trim();
   cartFeedback.textContent = '';
   cartFeedback.className = 'cart-feedback';
@@ -1080,12 +1098,50 @@ const DIAS_CONFIG = {
 
 // Horarios definidos en el Sheet durante esta carga; si hay alguno, reemplazan al fallback
 let horariosSheet = null;
+// Estado de pedidos leído del Sheet durante esta carga (por defecto activos)
+let ordersEnabledSheet = true;
+let ordersDisabledMsgSheet = DEFAULT_ORDERS_DISABLED_MSG;
 
-// Aplica una pareja clave/valor de la pestaña Config (enlaces u horarios)
+function applyOrdersEnabledUI(prevOrdersEnabled) {
+  if (ordersDisabledBanner) {
+    ordersDisabledBanner.classList.toggle('hidden', ordersEnabled);
+  }
+  if (ordersDisabledText) {
+    ordersDisabledText.textContent = ordersDisabledMessage;
+  }
+  if (btnCart) {
+    btnCart.classList.toggle('hidden', !ordersEnabled);
+  }
+  if (!ordersEnabled) {
+    if (cartDrawer && cartDrawer.classList.contains('open')) closeCartDrawer();
+    if (optionModal && !optionModal.classList.contains('hidden')) closeOptionModal();
+  }
+  if (prevOrdersEnabled !== ordersEnabled && menuData.length > 0) {
+    renderMenu();
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+// Aplica una pareja clave/valor de la pestaña Config (enlaces, horarios o estado de pedidos)
 function aplicarConfigClave(key, val) {
   if (key === 'instagram_url' || key === 'instagram') configLinks.instagram_url = val;
   else if (key === 'google_maps_url' || key === 'maps' || key === 'location') configLinks.google_maps_url = val;
   else if (key === 'reviews_url' || key === 'reviews' || key === 'reseñas') configLinks.reviews_url = val;
+  else if (key === 'pedidos_activos') {
+    const norm = normalizeText(val);
+    ordersEnabledSheet = !(norm === 'false' || norm === 'no' || norm === '0' || norm === 'off' || norm === 'desactivado' || norm === 'bloqueado');
+  }
+  else if (key === 'solo_barra') {
+    const norm = normalizeText(val);
+    if (norm === 'true' || norm === 'si' || norm === '1' || norm === 'on' || norm === 'activado') {
+      ordersEnabledSheet = false;
+    } else if (norm === 'false' || norm === 'no' || norm === '0' || norm === 'off') {
+      ordersEnabledSheet = true;
+    }
+  }
+  else if (key === 'mensaje_solo_barra' || key === 'pedidos_bloqueados_mensaje') {
+    if (val.trim()) ordersDisabledMsgSheet = val.trim();
+  }
   else if (key.startsWith('horario_')) {
     const dia = DIAS_CONFIG[key.slice('horario_'.length)];
     if (dia === undefined) return;
@@ -1134,6 +1190,14 @@ async function loadConfig() {
       openingHours = configCacheada.horarios;
       initStatusWidget();
     }
+    const prevEnabled = ordersEnabled;
+    if (typeof configCacheada.ordersEnabled === 'boolean') {
+      ordersEnabled = configCacheada.ordersEnabled;
+    }
+    if (configCacheada.ordersDisabledMessage) {
+      ordersDisabledMessage = configCacheada.ordersDisabledMessage;
+    }
+    applyOrdersEnabledUI(prevEnabled);
     updateActionButtons();
   }
 
@@ -1148,6 +1212,8 @@ async function loadConfig() {
     const text = await response.text();
 
     horariosSheet = null;
+    ordersEnabledSheet = true;
+    ordersDisabledMsgSheet = DEFAULT_ORDERS_DISABLED_MSG;
     if (isPublished) {
       parseCSVConfig(text);
     } else {
@@ -1161,15 +1227,24 @@ async function loadConfig() {
 
       table.rows.forEach(r => {
         if (r.c && r.c[0] && r.c[1]) {
-          const key = r.c[0].v ? r.c[0].v.toString().trim().toLowerCase() : '';
-          const val = r.c[1].v ? r.c[1].v.toString().trim() : '';
+          const key = r.c[0].v != null ? r.c[0].v.toString().trim().toLowerCase() : '';
+          const val = r.c[1].v != null ? r.c[1].v.toString().trim() : '';
           if (key && val) aplicarConfigClave(key, val);
         }
       });
       console.log("Configuración de enlaces cargada con éxito de Google Sheets:", configLinks);
     }
+    const prevEnabled = ordersEnabled;
+    ordersEnabled = ordersEnabledSheet;
+    ordersDisabledMessage = ordersDisabledMsgSheet;
+    applyOrdersEnabledUI(prevEnabled);
     aplicarHorariosSheet();
-    guardarCache('config_cache', { links: configLinks, horarios: horariosSheet });
+    guardarCache('config_cache', {
+      links: configLinks,
+      horarios: horariosSheet,
+      ordersEnabled: ordersEnabled,
+      ordersDisabledMessage: ordersDisabledMessage
+    });
   } catch (e) {
     console.log("Pestaña 'Config' no disponible en Google Sheets o formato incorrecto. Utilizando enlaces por defecto en app.js.");
   } finally {

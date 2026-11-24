@@ -873,6 +873,38 @@ body {
 .menu-card:nth-child(6) { animation-delay: 0.3s; }
 
 /* ----------------------------------------------------
+   AVISO SOLO SERVICIO EN BARRA (PEDIDOS BLOQUEADOS)
+---------------------------------------------------- */
+.orders-disabled-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto 1.5rem auto;
+  padding: 0.9rem 1.35rem;
+  background-color: rgba(197, 155, 39, 0.12);
+  border: 1px solid rgba(197, 155, 39, 0.45);
+  border-radius: 14px;
+  color: var(--text-main);
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-align: center;
+  backdrop-filter: var(--blur-glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  box-shadow: var(--shadow-glow);
+}
+
+.orders-disabled-banner i,
+.orders-disabled-banner svg {
+  width: 20px;
+  height: 20px;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+/* ----------------------------------------------------
    PRODUCTOS AGOTADOS + BOTÓN AÑADIR AL CARRITO
 ---------------------------------------------------- */
 .card-unavailable {
